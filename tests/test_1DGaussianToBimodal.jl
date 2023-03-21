@@ -27,3 +27,14 @@ function test_bimodal_score()
 	s_ana = bimodal_score(x,m1,m2,σ1,σ2,w1,w2)
 	@test s_fd ≈ s_ana atol=1.e-8
 end
+function test_bimodal_score_derivative()
+	x = rand()
+	ϵ = 1.e-6
+	m1, m2, σ1, σ2, w1, w2 = rand(6)
+	xp, xm = x + ϵ, x - ϵ
+	bs_p, bs_m = bimodal_score(xp,m1,m2,σ1,σ2,w1,w2),bimodal_score(xm,m1,m2,σ1,σ2,w1,w2)
+	ds_fd = (bs_p - bs_m)/(2*ϵ)
+	ds_ana = bimodal_score_derivative(x,m1,m2,σ1,σ2,w1,w2)
+	@test ds_fd ≈ ds_ana atol=1.e-8
+end
+
