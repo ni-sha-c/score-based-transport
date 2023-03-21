@@ -17,3 +17,13 @@ function test_solve_newton_step()
 	return v, v_true
 
 end
+function test_bimodal_score()
+	x = rand()
+	ϵ = 1.e-6
+	m1, m2, σ1, σ2, w1, w2 = rand(6)
+	xp, xm = x + ϵ, x - ϵ
+	bup_p, bup_m = bimodal_unnormalized_prob(xp,m1,m2,σ1,σ2,w1,w2),bimodal_unnormalized_prob(xm,m1,m2,σ1,σ2,w1,w2)
+	s_fd = (log(bup_p) - log(bup_m))/(2*ϵ)
+	s_ana = bimodal_score(x,m1,m2,σ1,σ2,w1,w2)
+	@test s_fd ≈ s_ana atol=1.e-8
+end

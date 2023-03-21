@@ -45,3 +45,39 @@ function solve_newton_step(p, q, dq, a, b, n)
 	v[2:n-1] = A[2:n-1,2:n-1]\b[2:n-1]
     return v
 end
+"""
+	Get score = d/dx log p (x), where p is a bimodal probability 
+	distribution.
+	p(x) =  (w1 e^(-(x-m1)^2/2σ1*σ1) +  w2 e^(-(x-m2)^2/2σ2*σ2))/Z
+	Inputs:
+		x: point to evaluate score at
+		m1, m2, σ1, σ2, w1, w2: parameters of bimodal distribution
+	Output:
+		s(x) = (d/dx log p)(x)
+"""
+function bimodal_score(x,m1,m2,σ1,σ2,w1,w2)
+	σ1sq_inv, σ2sq_inv = 1.0/(σ1*σ1), 1.0/(σ2*σ2)
+	p_g1 = exp(-(x-m1)^2*σ1sq_inv/2)
+	p_g2 = exp(-(x-m2)^2*σ2sq_inv/2)
+	px = w1*p_g1 + w2*p_g2
+	dpx = -w1*p_g1*(x-m1)*σ1sq_inv-w2*p_g2*(x-m2)*σ2sq_inv
+	return dpx/px
+end
+"""
+	Get unnormalized probability p(x) for a bimodal probability 
+	distribution.
+	p(x) =  (w1 e^(-(x-m1)^2/2σ1*σ1) +  w2 e^(-(x-m2)^2/2σ2*σ2))
+	Inputs:
+		x: point of evaluation
+		m1, m2, σ1, σ2, w1, w2: parameters of bimodal distribution
+	Output:
+		p(x)
+"""
+function bimodal_unnormalized_prob(x,m1,m2,σ1,σ2,w1,w2)
+	σ1sq_inv, σ2sq_inv = 1.0/(σ1*σ1), 1.0/(σ2*σ2)
+	p_g1 = exp(-(x-m1)^2*σ1sq_inv/2)
+	p_g2 = exp(-(x-m2)^2*σ2sq_inv/2)
+	px = w1*p_g1 + w2*p_g2
+	return px
+end
+
