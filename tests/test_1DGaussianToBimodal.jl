@@ -37,4 +37,10 @@ function test_bimodal_score_derivative()
 	ds_ana = bimodal_score_derivative(x,m1,m2,σ1,σ2,w1,w2)
 	@test ds_fd ≈ ds_ana atol=1.e-8
 end
-
+function test_newton_update()
+	x_gr = Array(LinRange(0,1,100))
+	v_gr = sin.(π*x_gr)
+	x = randn(10000)
+	Tx = newton_update(x_gr, v_gr, x)
+	return x, Tx
+end

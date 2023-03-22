@@ -1,3 +1,5 @@
+using Interpolations
+m1,m2,σ1,σ2,w1,w2=-0.5,0.5,0.1,0.1,0.5,0.5
 """
 	Solve for v_n:
 	L(q) v_n = (p_n - q)
@@ -55,7 +57,7 @@ end
 	Output:
 		s(x) = (d/dx log p)(x)
 """
-function bimodal_score(x,m1,m2,σ1,σ2,w1,w2)
+function bimodal_score(x,m1=m1,m2=m2,σ1=σ1,σ2=σ2,w1=w1,w2=w2)
 	σ1sq_inv, σ2sq_inv = 1.0/(σ1*σ1), 1.0/(σ2*σ2)
 	p_g1 = exp(-(x-m1)^2*σ1sq_inv/2)
 	p_g2 = exp(-(x-m2)^2*σ2sq_inv/2)
@@ -90,7 +92,7 @@ end
 	Output:
 		ds(x) = (d^2/dx^2 log p)(x)
 """
-function bimodal_score_derivative(x,m1,m2,σ1,σ2,w1,w2)
+function bimodal_score_derivative(x,m1=m1,m2=m2,σ1=σ1,σ2=σ2,w1=w1,w2=w2)
 	σ1sq_inv, σ2sq_inv = 1.0/(σ1*σ1), 1.0/(σ2*σ2)
 	p1 = exp(-(x-m1)^2*σ1sq_inv/2)
 	p2 = exp(-(x-m2)^2*σ2sq_inv/2)
@@ -110,3 +112,109 @@ function bimodal_score_derivative(x,m1,m2,σ1,σ2,w1,w2)
 			  w2*(dp2*a2 + p2*da2))
 	return t1 + t2
 end
+"""
+	Evaluate the transformed score function G(p,Id+v)
+	Inputs:
+		p: value of the score at a set of n points
+		vp: value of v' at the n points
+		vpp: value of v'' at the n points
+	Output:
+		Gp: value of G(p,Id+v) at the transformed n points.
+"""
+function H(p,vp,vpp)
+	opvp_inv = 1.0./(1.+vp)
+	return p.*opvp_inv .- vpp.*opvp_inv.*opvp_inv
+end
+"""
+	Update the score and the transport map using the Newton iterate solution v
+	Inputs:
+	    x_gr: n_gr grid points
+		v_gr: values of v at the n_gr grid points x_gr
+		x: n samples
+	Outputs:
+		x1_gr: new grid points
+		q_gr: target scores at x1_gr
+		dq_gr: target score derivative at x1_gr
+		a, b: boundaries of x1_gr
+		p1_gr: transported score at x1_gr
+		Tx: transported samples
+"""
+function newton_update(x_gr, v_gr, p_gr, x, n_gr, n)
+	v_int = linear_interpolation(x_gr, v_gr, extrapolation_bc=Line())
+	Tx = x .+ v_int.(x)
+	
+	dx_inv = 1/(x_gr[2]-x_gr[1])
+	dx2_inv = dx_inv*dx_inv
+	vp_gr = (v_gr[3:n_gr].-v_gr[1:n_gr-2]).*dx_inv.*0.5
+	vpp_gr = (-2*v_gr[2:n_gr-1].+v_gr[3:n_gr].+v_gr[1:n_gr-2]).*dx2_inv
+	Gp_gr = H(p_gr[2:n_gr-1],vp_gr,vpp_gr)
+
+	a, b = minimum(Tx), maximum(Tx)
+	x1_gr = Array(LinRange(a,b,n_gr))
+	p1_int = linear_interpolation(x_gr[2:n_gr-1],Gp_gr)
+	p1_gr = Array(p1_int.(x1_gr))
+	q_gr = Array(bimodal_score.(x1_gr))
+	dq_gr = Array(bimodal_score_derivative.(x1_gr)) 
+
+	return x1_gr, p1_gr, q_gr, dq_gr, a, b, Tx 
+end
+"""
+	Set up Newton method
+	Inputs:
+		m_s, σ_s: source mean and std
+		m1, m2, σ1, σ2, w1, w2: bimodal (target) distribution parameters
+	Outputs:
+		src_score: function that evaluates the source score
+		target_score: function that evaluates the target score
+		dtarget_score: function that evaluates the target score derivative
+"""
+function setup_newton_funs(m_s,σ_s,m1,m2,σ1,σ2,w1,w2)
+	src_score(x) = 
+
+end
+"""
+	Set up first iteration of Newton method
+	Inputs:
+		src_score: a function that evaluates the source score
+		target_score: a function that evaluates the target score
+		dtarget_score: a function that evaluates the target score derivative
+		a, b: boundaries of the grid points
+		n: number of grid points
+	Outputs:
+		x: grid points
+		p: source score evaluated at x
+		q: target score evaluated at x
+		dq: target score derivative evaluated at x
+"""
+function setup_first_iteration(src_score,tar_score,dtar_score,a,b,n)
+	x_gr = Array(LinRange(a,b,n))
+	p_gr = Array(src_score.(x_gr))
+	q_gr = Array(tar_score.(x_gr))
+	dq_gr = Array(dtar_score.(x_gr))
+	return x_gr, p_gr, q_gr, dq_gr
+end
+"""
+	Main driver function that performs KAM-Newton iteration to construct transport maps
+	Inputs:
+		x: n samples from a source distribution
+		q: target score function
+		dq: target score derivative function
+		k: maximum number of iterations of Newton method
+		n_gr: number of grid points for ODE solve in Newton iteration
+
+	Outputs:
+		Tx: evaluations of the final transport map at x
+		x_gr: grid points from the last iteration
+		v: values of the final v at x_gr
+		p_gr: values of the final transported score at x_gr
+		q_gr: values of the target score at x_gr
+"""
+function kam_newton(x,tar_score,dtar_score,k,n_gr)
+	a, b = minimum(x), maximum(x)
+
+function solve_newton_step(p, q, dq, a, b, n)
+	p, q, dq  = setup_newton(tar_score,a,b,n) 	
+
+
+end
+
