@@ -57,7 +57,7 @@ end
 	Output:
 		s(x) = (d/dx log p)(x)
 """
-function bimodal_score(x,m1=m1,m2=m2,σ1=σ1,σ2=σ2,w1=w1,w2=w2)
+function bimodal_score(x,m1,m2,σ1,σ2,w1,w2)
 	σ1sq_inv, σ2sq_inv = 1.0/(σ1*σ1), 1.0/(σ2*σ2)
 	p_g1 = exp(-(x-m1)^2*σ1sq_inv/2)
 	p_g2 = exp(-(x-m2)^2*σ2sq_inv/2)
@@ -92,7 +92,7 @@ end
 	Output:
 		ds(x) = (d^2/dx^2 log p)(x)
 """
-function bimodal_score_derivative(x,m1=m1,m2=m2,σ1=σ1,σ2=σ2,w1=w1,w2=w2)
+function bimodal_score_derivative(x,m1,m2,σ1,σ2,w1,w2)
 	σ1sq_inv, σ2sq_inv = 1.0/(σ1*σ1), 1.0/(σ2*σ2)
 	p1 = exp(-(x-m1)^2*σ1sq_inv/2)
 	p2 = exp(-(x-m2)^2*σ2sq_inv/2)
@@ -159,62 +159,53 @@ function newton_update(x_gr, v_gr, p_gr, x, n_gr, n)
 	return x1_gr, p1_gr, q_gr, dq_gr, a, b, Tx 
 end
 """
-	Set up Newton method
-	Inputs:
-		m_s, σ_s: source mean and std
-		m1, m2, σ1, σ2, w1, w2: bimodal (target) distribution parameters
-	Outputs:
-		src_score: function that evaluates the source score
-		target_score: function that evaluates the target score
-		dtarget_score: function that evaluates the target score derivative
-"""
-function setup_newton_funs(m_s,σ_s,m1,m2,σ1,σ2,w1,w2)
-	src_score(x) = 
-
-end
-"""
-	Set up first iteration of Newton method
-	Inputs:
-		src_score: a function that evaluates the source score
-		target_score: a function that evaluates the target score
-		dtarget_score: a function that evaluates the target score derivative
-		a, b: boundaries of the grid points
-		n: number of grid points
-	Outputs:
-		x: grid points
-		p: source score evaluated at x
-		q: target score evaluated at x
-		dq: target score derivative evaluated at x
-"""
-function setup_first_iteration(src_score,tar_score,dtar_score,a,b,n)
-	x_gr = Array(LinRange(a,b,n))
-	p_gr = Array(src_score.(x_gr))
-	q_gr = Array(tar_score.(x_gr))
-	dq_gr = Array(dtar_score.(x_gr))
-	return x_gr, p_gr, q_gr, dq_gr
-end
-"""
 	Main driver function that performs KAM-Newton iteration to construct transport maps
 	Inputs:
-		x: n samples from a source distribution
-		q: target score function
-		dq: target score derivative function
+		m_s, σ_s: mean and std of the source distribution
+		m1, m2, σ1, σ2, w1, w2: parameters of the target distribution
 		k: maximum number of iterations of Newton method
 		n_gr: number of grid points for ODE solve in Newton iteration
+		n: number of target samples needed
 
 	Outputs:
+		x: n samples from a source distribution
 		Tx: evaluations of the final transport map at x
 		x_gr: grid points from the last iteration
 		v: values of the final v at x_gr
 		p_gr: values of the final transported score at x_gr
 		q_gr: values of the target score at x_gr
 """
-function kam_newton(x,tar_score,dtar_score,k,n_gr)
-	a, b = minimum(x), maximum(x)
+function kam_newton(m_s,σ_s,m1,m2,σ1,σ2,w1,w2,k,n_gr,n)
+	#Set up function definitions
+	source_score(x) = bimodal_score(x,m_s,m2,σ_s,σ2,1.0,0.0)
+	tar_score(x) = bimodal_score(x,m1,m2,σ1,σ2,w1,w2)
+	dtar_score(x) = bimodal_score_derivative(x,m1,m2,σ1,σ2,w1,w2)
 
-function solve_newton_step(p, q, dq, a, b, n)
-	p, q, dq  = setup_newton(tar_score,a,b,n) 	
+	# Set up initial grid
+	x = m_s .+ σ_s*randn(n)
+	Tx = zeros(n)
+	Tx .= x
+	a, b = min(m1-3*σ1,m2-3*σ2),max(m1+3*σ1,m2+3*σ2)
+	x_gr = Array(LinRange(a,b,n_gr))
 
-
+	# Set up first iteration
+	p_gr = Array(source_score.(x_gr))
+	q_gr = Array(tar_score.(x_gr))
+	dq_gr = Array(dtar_score.(x_gr))
+	v_gr = zeros(n_gr)	
+	# Run Newton iterations
+	for i = 1:k
+		v_gr .= solve_newton_step(p_gr, q_gr, dq_gr, a, b, n_gr)
+		x1_gr, p1_gr, q_gr1, dq_gr1, a, b, Tx1 = newton_update(x_gr, v_gr, p_gr, x, n_gr, n)
+		
+		#Update
+		p_gr .= p1_gr
+		q_gr .= q_gr1
+		x_gr .= x1_gr
+		dq_gr .= dq_gr1
+		x .= Tx
+		Tx .= Tx1
+	end
+	return x, Tx, x_gr, v_gr, p_gr, q_gr 
 end
 
