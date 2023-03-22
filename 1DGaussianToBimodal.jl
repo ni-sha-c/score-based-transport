@@ -122,7 +122,7 @@ end
 		Gp: value of G(p,Id+v) at the transformed n points.
 """
 function H(p,vp,vpp)
-	opvp_inv = 1.0./(1.+vp)
+	opvp_inv = 1.0./(1.0.+vp)
 	return p.*opvp_inv .- vpp.*opvp_inv.*opvp_inv
 end
 """
@@ -139,7 +139,7 @@ end
 		p1_gr: transported score at x1_gr
 		Tx: transported samples
 """
-function newton_update(x_gr, v_gr, p_gr, x, n_gr, n)
+function newton_update(x_gr, v_gr, p_gr, x, tar_score, dtar_score, n_gr, n)
 	v_int = linear_interpolation(x_gr, v_gr, extrapolation_bc=Line())
 	Tx = x .+ v_int.(x)
 	
@@ -151,10 +151,10 @@ function newton_update(x_gr, v_gr, p_gr, x, n_gr, n)
 
 	a, b = minimum(Tx), maximum(Tx)
 	x1_gr = Array(LinRange(a,b,n_gr))
-	p1_int = linear_interpolation(x_gr[2:n_gr-1],Gp_gr)
+	p1_int = linear_interpolation(x_gr[2:n_gr-1],Gp_gr,extrapolation_bc=Line())
 	p1_gr = Array(p1_int.(x1_gr))
-	q_gr = Array(bimodal_score.(x1_gr))
-	dq_gr = Array(bimodal_score_derivative.(x1_gr)) 
+	q_gr = Array(tar_score.(x1_gr))
+	dq_gr = Array(dtar_score.(x1_gr)) 
 
 	return x1_gr, p1_gr, q_gr, dq_gr, a, b, Tx 
 end
@@ -196,7 +196,7 @@ function kam_newton(m_s,σ_s,m1,m2,σ1,σ2,w1,w2,k,n_gr,n)
 	# Run Newton iterations
 	for i = 1:k
 		v_gr .= solve_newton_step(p_gr, q_gr, dq_gr, a, b, n_gr)
-		x1_gr, p1_gr, q_gr1, dq_gr1, a, b, Tx1 = newton_update(x_gr, v_gr, p_gr, x, n_gr, n)
+		x1_gr, p1_gr, q_gr1, dq_gr1, a, b, Tx1 = newton_update(x_gr, v_gr, p_gr, x, tar_score, dtar_score, n_gr, n)
 		
 		#Update
 		p_gr .= p1_gr
