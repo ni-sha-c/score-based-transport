@@ -142,7 +142,6 @@ end
 function newton_update(x_gr, v_gr, p_gr, x, tar_score, dtar_score, n_gr, n)
 	v_int = linear_interpolation(x_gr, v_gr, extrapolation_bc=Line())
 	Tx = x .+ v_int.(x)
-	
 	dx_inv = 1/(x_gr[2]-x_gr[1])
 	dx2_inv = dx_inv*dx_inv
 	vp_gr = (v_gr[3:n_gr].-v_gr[1:n_gr-2]).*dx_inv.*0.5
@@ -154,8 +153,14 @@ function newton_update(x_gr, v_gr, p_gr, x, tar_score, dtar_score, n_gr, n)
 	p1_int = linear_interpolation(x_gr[2:n_gr-1],Gp_gr,extrapolation_bc=Line())
 	p1_gr = Array(p1_int.(x1_gr))
 	q_gr = Array(tar_score.(x1_gr))
-	dq_gr = Array(dtar_score.(x1_gr)) 
+	fig, ax = subplots()
+    ax.plot(x1_gr, q_gr,"P",label="target score evaluation")
+    ax.xaxis.set_tick_params(labelsize=16)
+    ax.yaxis.set_tick_params(labelsize=15)
+    ax.legend(fontsize=16)
+	ax.grid(true)
 
+	dq_gr = Array(dtar_score.(x1_gr)) 
 	return x1_gr, p1_gr, q_gr, dq_gr, a, b, Tx 
 end
 """
@@ -196,8 +201,9 @@ function kam_newton(m_s,σ_s,m1,m2,σ1,σ2,w1,w2,k,n_gr,n)
 	# Run Newton iterations
 	for i = 1:k
 		v_gr .= solve_newton_step(p_gr, q_gr, dq_gr, a, b, n_gr)
+
 		x1_gr, p1_gr, q_gr1, dq_gr1, a, b, Tx1 = newton_update(x_gr, v_gr, p_gr, x, tar_score, dtar_score, n_gr, n)
-		
+		@show maximum(p1_gr), minimum(p1_gr), maximum(q_gr1), minimum(q_gr1)	
 		#Update
 		p_gr .= p1_gr
 		q_gr .= q_gr1
