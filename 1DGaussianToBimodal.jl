@@ -48,6 +48,9 @@ function solve_newton_step(p, q, dq, a, b, n)
 	v[2:n-1] = A[2:n-1,2:n-1]\b[2:n-1]
     return v
 end
+function unimodal_score(x,m,σ)
+	return -(x-m)/σ/σ
+end
 """
 	Get score = d/dx log p (x), where p is a bimodal probability 
 	distribution.
@@ -203,7 +206,7 @@ end
 """
 function kam_newton(m_s,σ_s,m1,m2,σ1,σ2,w1,w2,k,n_gr,n)
 	#Set up function definitions
-	source_score(x) = bimodal_score(x,m_s,m2,σ_s,σ2,1.0,0.0)
+	source_score(x) = unimodal_score(x,m_s,σ_s)
 	tar_score(x) = bimodal_score(x,m1,m2,σ1,σ2,w1,w2)
 	dtar_score(x) = bimodal_score_derivative(x,m1,m2,σ1,σ2,w1,w2)
 
@@ -212,7 +215,8 @@ function kam_newton(m_s,σ_s,m1,m2,σ1,σ2,w1,w2,k,n_gr,n)
 	Tx = zeros(n)
 	Tx .= x
 	a, b = min(m1-3*σ1,m2-3*σ2),max(m1+3*σ1,m2+3*σ2)
-	x_gr = Array(LinRange(a,b,n_gr))
+	x_gr = Array(LinRange(a,0,n_gr))
+	x_gr_actual = Array(LinRange(a,b,2*n_gr))
 
 	# Set up first iteration
 	p_gr = Array(source_score.(x_gr))
