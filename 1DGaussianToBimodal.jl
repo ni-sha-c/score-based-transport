@@ -111,7 +111,6 @@ end
 """
 	Get score derivative = d^2/dx^2 log p (x), where p is a bimodal probability 
 	distribution.
-	p(x) =  (w1 e^(-(x-m1)^2/2σ1*σ1) +  w2 e^(-(x-m2)^2/2σ2*σ2))/Z
 	Inputs:
 		x: point of evaluation
 		m1, m2, σ1, σ2, w1, w2: parameters of bimodal distribution
@@ -120,6 +119,9 @@ end
 """
 function bimodal_score_derivative(x,m1,m2,σ1,σ2,w1,w2)
 	σ1sq_inv, σ2sq_inv = 1.0/(σ1*σ1), 1.0/(σ2*σ2)
+	c = 1/sqrt(2*π)
+	w1p, w2p = w1*c/σ1, w2*c/σ2
+
 	p1 = exp(-(x-m1)^2*σ1sq_inv/2)
 	p2 = exp(-(x-m2)^2*σ2sq_inv/2)
 	a1 = -(x-m1)*σ1sq_inv
@@ -130,13 +132,12 @@ function bimodal_score_derivative(x,m1,m2,σ1,σ2,w1,w2)
 	da1 = -σ1sq_inv
 	da2 = -σ2sq_inv
 
-	p = w1*p1 + w2*p2
-	dp = w1*dp1 + w2*dp2
+	p = w1p*p1 + w2p*p2
 	# s = 1/p(w1*dp1 + w2*dp2)
-	t1 = -1/p/p*dp*(w1*dp1 + w2*dp2)
-	t2 = 1/p*(w1*(dp1*a1 + p1*da1) + 
-			  w2*(dp2*a2 + p2*da2))
-	return t1 + t2
+	t1 = 1/p*(w1p*dp1 + w2p*dp2)
+	t2 = 1/p*(w1p*(dp1*a1 + p1*da1) + 
+			  w2p*(dp2*a2 + p2*da2))
+	return -t1*t1 + t2
 end
 """
 	Evaluate the transformed score function G(p,Id+v)
