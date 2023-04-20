@@ -1,4 +1,5 @@
 using Interpolations
+using LinearAlgebra
 m1,m2,σ1,σ2,w1,w2=-0.5,0.5,0.1,0.1,0.5,0.5
 """
 	Solve for v_n:
@@ -59,28 +60,53 @@ end
 """
 function bimodal_score(x,m1,m2,σ1,σ2,w1,w2)
 	σ1sq_inv, σ2sq_inv = 1.0/(σ1*σ1), 1.0/(σ2*σ2)
+	c = 1/sqrt(2*π)
+	w1p, w2p = w1*c/σ1, w2*c/σ2
 	p_g1 = exp(-(x-m1)^2*σ1sq_inv/2)
 	p_g2 = exp(-(x-m2)^2*σ2sq_inv/2)
-	px = w1*p_g1 + w2*p_g2
-	dpx = -w1*p_g1*(x-m1)*σ1sq_inv-w2*p_g2*(x-m2)*σ2sq_inv
+	px = w1p*p_g1 + w2p*p_g2
+	dpx = -w1p*p_g1*(x-m1)*σ1sq_inv-w2p*p_g2*(x-m2)*σ2sq_inv
 	return dpx/px
 end
 """
-	Get unnormalized probability p(x) for a bimodal probability 
+	Get probability p(x) for a bimodal probability 
 	distribution.
-	p(x) =  (w1 e^(-(x-m1)^2/2σ1*σ1) +  w2 e^(-(x-m2)^2/2σ2*σ2))
+	p(x) =  (w1/(σ1 √2π) e^(-(x-m1)^2/2σ1*σ1) +  w2/(σ2 √2π) e^(-(x-m2)^2/2σ2*σ2))
 	Inputs:
 		x: point of evaluation
 		m1, m2, σ1, σ2, w1, w2: parameters of bimodal distribution
 	Output:
 		p(x)
 """
-function bimodal_unnormalized_prob(x,m1,m2,σ1,σ2,w1,w2)
+function bimodal_prob(x,m1,m2,σ1,σ2,w1,w2)
 	σ1sq_inv, σ2sq_inv = 1.0/(σ1*σ1), 1.0/(σ2*σ2)
+	c = 1/sqrt(2*π)
+	w1p, w2p = w1*c/σ1, w2*c/σ2
+
 	p_g1 = exp(-(x-m1)^2*σ1sq_inv/2)
 	p_g2 = exp(-(x-m2)^2*σ2sq_inv/2)
-	px = w1*p_g1 + w2*p_g2
+	px = w1p*p_g1 + w2p*p_g2
 	return px
+end
+"""
+   Sample from a bimodal Gaussian
+   Inputs:
+   		m1,m2,σ1,σ2,w1,w2: parameters of the bimodal distribution
+		n: number of samples needed
+	Output:
+		x: n samples from bimodal distribution
+"""
+function sample_bimodal(m1,m2,σ1,σ2,w1,w2,n)
+	x = zeros(n)
+	for i = 1:n
+		u = rand()
+		if u < w1
+			x[i] = m1 + σ1*randn()
+		else 
+			x[i] = m2 + σ2*randn()
+		end
+	end
+	return x
 end
 """
 	Get score derivative = d^2/dx^2 log p (x), where p is a bimodal probability 
@@ -148,18 +174,12 @@ function newton_update(x_gr, v_gr, p_gr, x, tar_score, dtar_score, n_gr, n)
 	vpp_gr = (-2*v_gr[2:n_gr-1].+v_gr[3:n_gr].+v_gr[1:n_gr-2]).*dx2_inv
 	Gp_gr = H(p_gr[2:n_gr-1],vp_gr,vpp_gr)
 
-	a, b = minimum(Tx), maximum(Tx)
+	a, b = max(minimum(x_gr),minimum(Tx)), min(maximum(x_gr),maximum(Tx))
+	@show a, b, tar_score(a), tar_score(b)
 	x1_gr = Array(LinRange(a,b,n_gr))
 	p1_int = linear_interpolation(x_gr[2:n_gr-1],Gp_gr,extrapolation_bc=Line())
 	p1_gr = Array(p1_int.(x1_gr))
-	q_gr = Array(tar_score.(x1_gr))
-	fig, ax = subplots()
-    ax.plot(x1_gr, q_gr,"P",label="target score evaluation")
-    ax.xaxis.set_tick_params(labelsize=16)
-    ax.yaxis.set_tick_params(labelsize=15)
-    ax.legend(fontsize=16)
-	ax.grid(true)
-
+	q_gr = Array(tar_score.(x_gr))
 	dq_gr = Array(dtar_score.(x1_gr)) 
 	return x1_gr, p1_gr, q_gr, dq_gr, a, b, Tx 
 end
@@ -198,10 +218,15 @@ function kam_newton(m_s,σ_s,m1,m2,σ1,σ2,w1,w2,k,n_gr,n)
 	q_gr = Array(tar_score.(x_gr))
 	dq_gr = Array(dtar_score.(x_gr))
 	v_gr = zeros(n_gr)	
+	
+	# Set up some metrics to return
+	normv = zeros(k)
+	x_src = copy(x)
+	@show sum(x_src)/n, sum(x_src.*x_src)/n
 	# Run Newton iterations
 	for i = 1:k
 		v_gr .= solve_newton_step(p_gr, q_gr, dq_gr, a, b, n_gr)
-
+		normv[i] = norm(v_gr)
 		x1_gr, p1_gr, q_gr1, dq_gr1, a, b, Tx1 = newton_update(x_gr, v_gr, p_gr, x, tar_score, dtar_score, n_gr, n)
 		@show maximum(p1_gr), minimum(p1_gr), maximum(q_gr1), minimum(q_gr1)	
 		#Update
@@ -212,6 +237,6 @@ function kam_newton(m_s,σ_s,m1,m2,σ1,σ2,w1,w2,k,n_gr,n)
 		x .= Tx
 		Tx .= Tx1
 	end
-	return x, Tx, x_gr, v_gr, p_gr, q_gr 
+	return x_src, Tx, x_gr, v_gr, p_gr, q_gr, normv 
 end
 
