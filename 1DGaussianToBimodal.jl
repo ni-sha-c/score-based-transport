@@ -169,23 +169,24 @@ end
 		p1_gr: transported score at x1_gr
 		Tx: transported samples
 """
-function newton_update(x_gr, v_gr, p_gr, x, tar_score, dtar_score, n_gr, n)
+function newton_update(x_gr, v_gr, p_gr, x, n_gr, n)
 	v_int = linear_interpolation(x_gr, v_gr, extrapolation_bc=Line())
 	Tx = x .+ v_int.(x)
 	dx_inv = 1/(x_gr[2]-x_gr[1])
 	dx2_inv = dx_inv*dx_inv
 	vp_gr = (v_gr[3:n_gr].-v_gr[1:n_gr-2]).*dx_inv.*0.5
-	vpp_gr = (-2*v_gr[2:n_gr-1].+v_gr[3:n_gr].+v_gr[1:n_gr-2]).*dx2_inv
+	#vpp_gr = (-2*v_gr[2:n_gr-1].+v_gr[3:n_gr].+v_gr[1:n_gr-2]).*dx2_inv
+	vp_gr .= vp_gr[round(Int64, n_gr/2)]
+	vpp_gr = zeros(n_gr-2)
 	Gp_gr = H(p_gr[2:n_gr-1],vp_gr,vpp_gr)
 
-	a, b = max(minimum(x_gr),minimum(Tx)), min(maximum(x_gr),maximum(Tx))
-	@show a, b, tar_score(a), tar_score(b)
-	x1_gr = Array(LinRange(a,b,n_gr))
-	p1_int = linear_interpolation(x_gr[2:n_gr-1],Gp_gr,extrapolation_bc=Line())
-	p1_gr = Array(p1_int.(x1_gr))
-	q_gr = Array(tar_score.(x_gr))
-	dq_gr = Array(dtar_score.(x1_gr)) 
-	return x1_gr, p1_gr, q_gr, dq_gr, a, b, Tx 
+	Tx_gr = x_gr .+ v_gr
+	Tx_gr = Tx_gr[2:n_gr-1]
+	order_gr = sortperm(Tx_gr)
+	Tx_gr, Gp_gr = Tx_gr[order_gr], Gp_gr[order_gr]
+	p1_int = linear_interpolation(Tx_gr,Gp_gr,extrapolation_bc=Line())
+	p1_gr = Array(p1_int.(x_gr))
+	return p1_gr, Tx, Tx_gr, Gp_gr  
 end
 """
 	Main driver function that performs KAM-Newton iteration to construct transport maps
@@ -214,7 +215,7 @@ function kam_newton(m_s,σ_s,m1,m2,σ1,σ2,w1,w2,k,n_gr,n)
 	x = m_s .+ σ_s*randn(n)
 	Tx = zeros(n)
 	Tx .= x
-	a, b = min(m1-3*σ1,m2-3*σ2),max(m1+3*σ1,m2+3*σ2)
+	a, b = min(m1-4*σ1,m2-4*σ2),max(m1+4*σ1,m2+4*σ2)
 	x_gr = Array(LinRange(a,0,n_gr))
 	x_gr_actual = Array(LinRange(a,b,2*n_gr))
 
@@ -223,7 +224,8 @@ function kam_newton(m_s,σ_s,m1,m2,σ1,σ2,w1,w2,k,n_gr,n)
 	q_gr = Array(tar_score.(x_gr))
 	dq_gr = Array(dtar_score.(x_gr))
 	v_gr = zeros(n_gr)	
-	
+	vp = zeros(n_gr-2)	
+	vpp = zeros(n_gr-2)	
 	# Set up some metrics to return
 	normv = zeros(k)
 	x_src = copy(x)
@@ -232,16 +234,16 @@ function kam_newton(m_s,σ_s,m1,m2,σ1,σ2,w1,w2,k,n_gr,n)
 	for i = 1:k
 		v_gr .= solve_newton_step(p_gr, q_gr, dq_gr, a, b, n_gr)
 		normv[i] = norm(v_gr)
-		x1_gr, p1_gr, q_gr1, dq_gr1, a, b, Tx1 = newton_update(x_gr, v_gr, p_gr, x, tar_score, dtar_score, n_gr, n)
-		@show maximum(p1_gr), minimum(p1_gr), maximum(q_gr1), minimum(q_gr1)	
+		p1_gr, Tx1, vp1, vpp1 = newton_update(x_gr, v_gr, p_gr, x, n_gr, n)
+		vp .= vp1
+		vpp .= vpp1
+		
+		@show maximum(p1_gr), minimum(p1_gr), maximum(Tx1), minimum(Tx1)	
 		#Update
 		p_gr .= p1_gr
-		q_gr .= q_gr1
-		x_gr .= x1_gr
-		dq_gr .= dq_gr1
 		x .= Tx
 		Tx .= Tx1
 	end
-	return x_src, Tx, x_gr, v_gr, p_gr, q_gr, normv 
+	return x_src, Tx, x_gr, v_gr, p_gr, q_gr, normv, vp, vpp 
 end
 

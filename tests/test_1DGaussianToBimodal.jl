@@ -42,9 +42,9 @@ function test_kam_newton(k)
 	m_s, σ_s = 0, 0.5
 	m1,m2,σ1,σ2,w1,w2=-0.5,0.5,0.1,0.1,0.5,0.5	
 	#k = 1
-	n_gr = 250
+	n_gr = 128
 	n=30000
-	x, Tx, x_gr, v_gr, p_gr, q_gr, normv = kam_newton(m_s,σ_s,m1,m2,σ1,σ2,w1,w2,k,n_gr,n)
+	x, Tx, x_gr, v_gr, p_gr, q_gr, normv, vp, vpp = kam_newton(m_s,σ_s,m1,m2,σ1,σ2,w1,w2,k,n_gr,n)
 	x_tar = sample_bimodal(m1,m2,σ1,σ2,w1,w2,n)
 	fig, ax = subplots()
 	ax.plot(x_gr, v_gr,"P",label="final v")
@@ -65,8 +65,9 @@ function test_kam_newton(k)
 	tight_layout()
 	savefig("../plots/hist-k$k.png")	
 	fig, ax = subplots()
-	ax.plot(x_gr, p_gr,"P",label="transported src score")
-	ax.plot(x_gr, q_gr,"o",label="tar score")
+	ax.plot(x_gr, p_gr, "P", label="transported src score (interp)")
+	ax.plot(x_gr, q_gr, "o", label="tar score")
+	ax.plot(vp, vpp, "o", label="transported src score uninterp")
 	ax.xaxis.set_tick_params(labelsize=16)
 	ax.yaxis.set_tick_params(labelsize=16)
 	ax.legend(fontsize=16)
@@ -92,8 +93,9 @@ function test_kam_newton(k)
 
 	@show m_true, m_comp
 	@show v_true, v_comp
-
-
+	@show v_gr[1:3]
+	@show vp[1], vpp[1]
+	
 	#return x, Tx, x_gr, v_gr, p_gr, q_gr, normv
 end
 function test_target_score()
