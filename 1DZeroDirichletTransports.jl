@@ -138,7 +138,7 @@ function kam_newton(k,n_gr,n)
 	normv = zeros(k)
 	x_src = copy(x)
 	@show sum(x_src)/n, sum(x_src.*x_src)/n
-	#=
+
     # Run Newton iterations
 	for i = 1:k
 		v_gr .= solve_newton_step(p_gr, q_gr, dq_gr, a, b, n_gr)
@@ -153,7 +153,7 @@ function kam_newton(k,n_gr,n)
 		x .= Tx
 		Tx .= Tx1
 	end
-    =#
+   
 	return x_src, Tx, x_gr, v_gr, p_gr, q_gr, normv, vp, vpp 
 end
 
