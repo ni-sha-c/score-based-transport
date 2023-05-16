@@ -15,11 +15,11 @@ function plot_target()
     ax.yaxis.set_tick_params(labelsize=24)
 end
 function test_kam_newton()
-	k = 1
-	n_gr = 32
+	k = 5
+	n_gr = 128
 	n=30000
-	x1, Tx1, x_gr, v_gr1, p_gr1, q_gr1, normv1, vp1, vpp1 = kam_newton1(k,n_gr,n)
-	x2, Tx2, x_gr, v_gr2, p_gr2, q_gr2, normv2, vp2, vpp2 = kam_newton2(k,n_gr,n)
+	x1, Tx1, x_gr, v_gr1, p_gr1, q_gr1, normv1, vp1, vpp1 = kam_newton(k,n_gr,n,q1,dq1)
+	x2, Tx2, x_gr, v_gr2, p_gr2, q_gr2, normv2, vp2, vpp2 = kam_newton(k,n_gr,n,q2,dq2)
     x_source = rand(n)
     x_tar1 = zeros(n)
     x_tar1 .= KRMap1.(x_source)
@@ -63,21 +63,23 @@ function test_kam_newton()
 	savefig("../plots/scores-k$k.png")	
     
     fig, ax = subplots()
-    ax.plot(x_gr, x_gr .+ v_gr1, "o", label="KAM transport 1")
-    ax.plot(x_gr, KRMap1.(x_gr), "P", label="KR transport 1")
+    ax.plot(x1, Tx1, "o", label="KAM transport 1")
+    ax.plot(x1, KRMap1.(x1), "P",ms=0.5, label="KR transport 1")
 	ax.xaxis.set_tick_params(labelsize=16)
 
-    ax.plot(x_gr, x_gr .+ v_gr2, "o", label="KAM transport 2")
-    ax.plot(x_gr, KRMap2.(x_gr), "P", label="KR transport 2")
+    ax.plot(x2, Tx2, "o", label="KAM transport 2")
+    ax.plot(x2, KRMap2.(x2), "P", ms=0.5,label="KR transport 2")
 	ax.yaxis.set_tick_params(labelsize=16)
 	ax.legend(fontsize=16)
-	ax.grid(true)
+	
+    ax.grid(true)
     ax.set_xlabel("x", fontsize=16)
     ax.set_ylabel("T(x)", fontsize=16)
     tight_layout()
-    #=
+   
 	fig, ax = subplots()
-	ax.plot(Array(1:k),normv,"P--",label="||v||")
+	ax.plot(Array(1:k),normv1,"P--",label="||v1||")
+	ax.plot(Array(1:k),normv2,"o--",label="||v2||")
 	ax.xaxis.set_tick_params(labelsize=16)
 	ax.yaxis.set_tick_params(labelsize=16)
 	ax.legend(fontsize=16)
@@ -86,18 +88,6 @@ function test_kam_newton()
 	tight_layout()
 	savefig("../plots/normv.png")	
     
-	m_true = sum(x_tar)/n
-	v_true = sum(x_tar.*x_tar)/n - m_true*m_true
-	m_comp = sum(Tx)/n
-	v_comp = sum(Tx.*Tx)/n - m_comp*m_comp
-
-	@show m_true, m_comp
-	@show v_true, v_comp
-	@show v_gr[1:3]
-	@show vp[1], vpp[1]
-	
-	#return x, Tx, x_gr, v_gr, p_gr, q_gr, normv
-    =#
-    
+	    
 end
 

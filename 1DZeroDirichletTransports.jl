@@ -1,11 +1,18 @@
 using Interpolations
 using LinearAlgebra
-function q(x)
+function q1(x)
     return -14/3/(7*x+1) 
 end
-function dq(x)
+function dq1(x)
     return 98/3/(7*x+1)/(7*x+1) 
 end
+function q2(x)
+    return 3/2/(4-3*x) 
+end
+function dq2(x)
+    return 9/2/(4-3*x)^2
+end
+
 """
 	Solve for v_n:
 	L(q) v_n = (p_n - q)
@@ -86,11 +93,11 @@ function newton_update(x_gr, v_gr, p_gr, x, n_gr, n)
 	dx_inv = 1/(x_gr[2]-x_gr[1])
 	dx2_inv = dx_inv*dx_inv
 	vp_gr = (v_gr[3:n_gr].-v_gr[1:n_gr-2]).*dx_inv.*0.5
-	#vpp_gr = (-2*v_gr[2:n_gr-1].+v_gr[3:n_gr].+v_gr[1:n_gr-2]).*dx2_inv
-	vp_gr .= vp_gr[round(Int64, n_gr/2)]
-	vpp_gr = zeros(n_gr-2)
+	vpp_gr = (-2*v_gr[2:n_gr-1].+v_gr[3:n_gr].+v_gr[1:n_gr-2]).*dx2_inv
+	#vp_gr .= vp_gr[round(Int64, n_gr/2)]
+	#vpp_gr = zeros(n_gr-2)
 	Gp_gr = H(p_gr[2:n_gr-1],vp_gr,vpp_gr)
-
+        @show maximum(Gp_gr), minimum(Gp_gr)
 	Tx_gr = x_gr .+ v_gr
 	Tx_gr = Tx_gr[2:n_gr-1]
 	order_gr = sortperm(Tx_gr)
@@ -114,11 +121,9 @@ end
 		p_gr: values of the final transported score at x_gr
 		q_gr: values of the target score at x_gr
 """
-function kam_newton(k,n_gr,n)
+function kam_newton(k,n_gr,n,tar_score,dtar_score)
 	#Set up function definitions
 	source_score(x) = 0.0
-    tar_score(x) = q(x)
-	dtar_score(x) = dq(x)
 
 	# Set up initial grid
 	x = rand(n)
@@ -136,25 +141,22 @@ function kam_newton(k,n_gr,n)
 	vpp = zeros(n_gr-2)	
 	# Set up some metrics to return
 	normv = zeros(k)
-	x_src = copy(x)
-	@show sum(x_src)/n, sum(x_src.*x_src)/n
+	@show sum(x)/n, sum(x.*x)/n
 
     # Run Newton iterations
 	for i = 1:k
 		v_gr .= solve_newton_step(p_gr, q_gr, dq_gr, a, b, n_gr)
 		normv[i] = norm(v_gr)
-		p1_gr, Tx1, vp1, vpp1 = newton_update(x_gr, v_gr, p_gr, x, n_gr, n)
+		p1_gr, Tx1, vp1, vpp1 = newton_update(x_gr, v_gr, p_gr, Tx, n_gr, n)
 		vp .= vp1
 		vpp .= vpp1
 		
 		@show maximum(p1_gr), minimum(p1_gr), maximum(Tx1), minimum(Tx1)	
 		#Update
 		p_gr .= p1_gr
-		x .= Tx
 		Tx .= Tx1
 	end
    
-	return x_src, Tx, x_gr, v_gr, p_gr, q_gr, normv, vp, vpp 
+	return x, Tx, x_gr, v_gr, p_gr, q_gr, normv, vp, vpp 
 end
-
 
