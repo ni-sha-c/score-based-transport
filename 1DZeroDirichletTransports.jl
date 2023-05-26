@@ -4,14 +4,21 @@ function q1(x)
     return -14/3/(7*x+1) 
 end
 function dq1(x)
-    return 98/3/(7*x+1)/(7*x+1) 
+    return 98/3/(7*x+1)/(7*x+1)  
 end
+#function q2(x)
+#    return 3/2/(4-3*x) 
+#end
+#function dq2(x)
+#    return 9/2/(4-3*x)^2
+#end
 function q2(x)
-    return 3/2/(4-3*x) 
+    return -14/3/(7*x+1) + 0.5*rand()
 end
 function dq2(x)
-    return 9/2/(4-3*x)^2
+    return 98/3/(7*x+1)/(7*x+1) + rand() 
 end
+
 
 """
 	Solve for v_n:
