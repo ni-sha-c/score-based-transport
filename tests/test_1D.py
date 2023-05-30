@@ -2,28 +2,29 @@ from matplotlib.pyplot import *
 import sys
 import os
 sys.path.append(os.path.abspath("/home/nisha/Research/faculty/code/score-based-transport/bimodal"))
-from 1DGaussianToBimodal import *
-"""
-function KRMap1(x)
-     return ((x+1)^3 - 1)/7
-end
-function KRMap2(x)
-    return 4/3 - (2-x)^2/3
-end
-function plot_target()
-    x = rand(100000)
-    y = KRMap1.(x)
+from oneD import *
+
+def KRMap1(x):
+    return ((x+1)**3 - 1)/7
+def KRMap2(x):
+    return 4/3 - (2-x)**2/3
+def plot_target():
+    x = random.rand(100000)
+    y = KRMap1(x)
     fig, ax = subplots()
     ax.hist(y, bins=500)
     ax.xaxis.set_tick_params(labelsize=24)
     ax.yaxis.set_tick_params(labelsize=24)
-end
-function test_kam_newton()
-	k = 5
-	n_gr = 128
-	n=30000
-	x1, Tx1, x_gr, v_gr1, p_gr1, q_gr1, normv1, vp1, vpp1 = kam_newton(k,n_gr,n,q1,dq1)
-	x2, Tx2, x_gr, v_gr2, p_gr2, q_gr2, normv2, vp2, vpp2 = kam_newton(k,n_gr,n,q2,dq2)
+
+def test_kam_newton():
+    k = 5
+    n_gr = 128
+    n=30000
+    x1 = rand(n)
+    x2 = rand(n)
+    
+    Tx1, x_gr, v_gr1, p_gr1, q_gr1, normv1 = kam_newton(k,n_gr,n,q1,dq1)
+	Tx2, x_gr, v_gr2, p_gr2, q_gr2, normv2 = kam_newton(k,n_gr,n,q2,dq2)
     x_source = rand(n)
     x_tar1 = zeros(n)
     x_tar1 .= KRMap1.(x_source)

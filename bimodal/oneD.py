@@ -15,8 +15,7 @@ m1,m2,s1,s2,w1,w2=-0.5,0.5,0.1,0.1,0.5,0.5
 	Output:
 		v_n: solution v_n at the n points.
 """
-def solve_newton_step(p, q, dq, a, b, n):
-    dx = (b-a)/(n-1)
+def solve_newton_step(p, q, dq, dx, n):
     dx_inv = 1/dx
     dx2_inv = dx_inv*dx_inv
     A = zeros((n,n))
@@ -161,42 +160,33 @@ def newton_update(x_gr, v_gr, p_gr, x, n_gr, n):
 """
 	Main driver function that performs KAM-Newton iteration to construct transport maps
 	Inputs:
-		m_s, s_s: mean and std of the source distribution
-		m1, m2, s1, s2, w1, w2: parameters of the target distribution
-		k: maximum number of iterations of Newton method
+        x: source samples
+        k: maximum number of iterations of Newton method
 		n_gr: number of grid points for ODE solve in Newton iteration
-		n: number of target samples needed
+		n: number of target samples needed (=dim(x))
 
 	Outputs:
-		x: n samples from a source distribution
 		Tx: evaluations of the final transport map at x
 		x_gr: grid points from the last iteration
 		v: values of the final v at x_gr
 		p_gr: values of the final transported score at x_gr
 		q_gr: values of the target score at x_gr
+        normv: norms of v during KAM-Newton iterations
 """
-def kam_newton(m_s,s_s,m1,m2,s1,s2,w1,w2,k,n_gr,n):
-
-	# Set up initial grid
-    x = m_s + s_s*random.randn(n)
+def kam_newton(x,k,n_gr,n,tar_sc,dtar_sc,src_sc):
     Tx = copy(x)
-    a, b = min(m1-4*s1,m2-4*s2),max(m1+4*s1,m2+4*s2)
-    x_gr = linspace(a,0,n_gr)
-
-	# Set up first iteration
-    p_gr = unimodal_score(x_gr, m_s, s_s)
-    q_gr = bimodal_score(x_gr,m1,m2,s1,s2,w1,w2)
-    dq_gr =  bimodal_score_derivative(x_gr,m1,m2,s1,s2,w1,w2)
-    v_gr = zeros(n_gr)	
-    
-    # Set up some metrics to return
+    x_gr = linspace(min(x),max(x),n_gr)
+    dx = x_gr[1] - x_gr[0]
+    # Set up first iteration
+    p_gr = src_sc(x_gr)
+    q_gr = tar_sc(x_gr)
+    dq_gr = dtar_sc(x_gr)
     normv = zeros(k)
     print(sum(x)/n, sum(x*x)/n)
-	
-    # Run Newton iterations
+	# Run Newton iterations
     for i in range(k):
-        v_gr = solve_newton_step(p_gr, q_gr, dq_gr, a, b, n_gr)
+        v_gr = solve_newton_step(p_gr, q_gr, dq_gr, dx, n_gr)
         normv[i] = linalg.norm(v_gr)
         p_gr, Tx = newton_update(x_gr, v_gr, p_gr, Tx, n_gr, n)
         print(max(p_gr), min(p_gr), max(Tx), min(Tx))
-    return x, Tx, x_gr, v_gr, p_gr, q_gr, normv
+    return Tx, x_gr, v_gr, p_gr, q_gr, normv
