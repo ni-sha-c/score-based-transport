@@ -1,6 +1,6 @@
 from numpy import *
 import scipy as sp
-m1,m2,σ1,σ2,w1,w2=-0.5,0.5,0.1,0.1,0.5,0.5
+m1,m2,s1,s2,w1,w2=-0.5,0.5,0.1,0.1,0.5,0.5
 
 """
 	Solve for v_n:
@@ -33,85 +33,85 @@ def solve_newton_step(p, q, dq, a, b, n):
     v[1:n-1] = linalg.solve(A[1:n-1,1:n-1], b[1:n-1])
     return v
 
-def unimodal_score(x,m,σ):
-    return -(x-m)/σ/σ
+def unimodal_score(x,m,s):
+    return -(x-m)/s/s
 
 
 """
 	Get score = d/dx log p (x), where p is a bimodal probability 
 	distribution.
-	p(x) =  (w1 e^(-(x-m1)^2/2σ1*σ1) +  w2 e^(-(x-m2)^2/2σ2*σ2))/Z
+	p(x) =  (w1 e^(-(x-m1)^2/2s1*s1) +  w2 e^(-(x-m2)^2/2s2*s2))/Z
 	Inputs:
 		x: point to evaluate score at
-		m1, m2, σ1, σ2, w1, w2: parameters of bimodal distribution
+		m1, m2, s1, s2, w1, w2: parameters of bimodal distribution
 	Output:
 		s(x) = (d/dx log p)(x)
 """
-def bimodal_score(x,m1,m2,σ1,σ2,w1,w2):
-    σ1sq_inv, σ2sq_inv = 1.0/(σ1*σ1), 1.0/(σ2*σ2)
-    c = 1/sqrt(2*π)
-    w1p, w2p = w1*c/σ1, w2*c/σ2
-    p_g1 = exp(-(x-m1)^2*σ1sq_inv/2)
-    p_g2 = exp(-(x-m2)^2*σ2sq_inv/2)
+def bimodal_score(x,m1,m2,s1,s2,w1,w2):
+    s1sq_inv, s2sq_inv = 1.0/(s1*s1), 1.0/(s2*s2)
+    c = 1/sqrt(2*pi)
+    w1p, w2p = w1*c/s1, w2*c/s2
+    p_g1 = exp(-(x-m1)^2*s1sq_inv/2)
+    p_g2 = exp(-(x-m2)^2*s2sq_inv/2)
     px = w1p*p_g1 + w2p*p_g2
-    dpx = -w1p*p_g1*(x-m1)*σ1sq_inv-w2p*p_g2*(x-m2)*σ2sq_inv
+    dpx = -w1p*p_g1*(x-m1)*s1sq_inv-w2p*p_g2*(x-m2)*s2sq_inv
     return dpx/px
 """
 	Get probability p(x) for a bimodal probability 
 	distribution.
-	p(x) =  (w1/(σ1 √2π) e^(-(x-m1)^2/2σ1*σ1) +  w2/(σ2 √2π) e^(-(x-m2)^2/2σ2*σ2))
+	p(x) =  (w1/(s1 √2pi) e^(-(x-m1)^2/2s1*s1) +  w2/(s2 √2pi) e^(-(x-m2)^2/2s2*s2))
 	Inputs:
 		x: point of evaluation
-		m1, m2, σ1, σ2, w1, w2: parameters of bimodal distribution
+		m1, m2, s1, s2, w1, w2: parameters of bimodal distribution
 	Output:
 		p(x)
 """
-def bimodal_prob(x,m1,m2,σ1,σ2,w1,w2):
-    σ1sq_inv, σ2sq_inv = 1.0/(σ1*σ1), 1.0/(σ2*σ2)
-    c = 1/sqrt(2*π)
-    w1p, w2p = w1*c/σ1, w2*c/σ2
-    p_g1 = exp(-(x-m1)^2*σ1sq_inv/2)
-    p_g2 = exp(-(x-m2)^2*σ2sq_inv/2)
+def bimodal_prob(x,m1,m2,s1,s2,w1,w2):
+    s1sq_inv, s2sq_inv = 1.0/(s1*s1), 1.0/(s2*s2)
+    c = 1/sqrt(2*pi)
+    w1p, w2p = w1*c/s1, w2*c/s2
+    p_g1 = exp(-(x-m1)^2*s1sq_inv/2)
+    p_g2 = exp(-(x-m2)^2*s2sq_inv/2)
     px = w1p*p_g1 + w2p*p_g2
     return px
 """
    Sample from a bimodal Gaussian
    Inputs:
-   		m1,m2,σ1,σ2,w1,w2: parameters of the bimodal distribution
+   		m1,m2,s1,s2,w1,w2: parameters of the bimodal distribution
 		n: number of samples needed
 	Output:
 		x: n samples from bimodal distribution
 """
-def sample_bimodal(m1,m2,σ1,σ2,w1,w2,n):
+def sample_bimodal(m1,m2,s1,s2,w1,w2,n):
     x = zeros(n)
     for i in range(n):
         u = random.rand()
         if u < w1:
-            x[i] = m1 + σ1*randn()
+            x[i] = m1 + s1*randn()
         else: 
-            x[i] = m2 + σ2*randn()
+            x[i] = m2 + s2*randn()
     return x
 """
 	Get score derivative = d^2/dx^2 log p (x), where p is a bimodal probability 
 	distribution.
 	Inputs:
 		x: point of evaluation
-		m1, m2, σ1, σ2, w1, w2: parameters of bimodal distribution
+		m1, m2, s1, s2, w1, w2: parameters of bimodal distribution
 	Output:
 		ds(x) = (d^2/dx^2 log p)(x)
 """
-def bimodal_score_derivative(x,m1,m2,σ1,σ2,w1,w2):
-    σ1sq_inv, σ2sq_inv = 1.0/(σ1*σ1), 1.0/(σ2*σ2)
-    c = 1/sqrt(2*π)
-    w1p, w2p = w1*c/σ1, w2*c/σ2
-    p1 = exp(-(x-m1)^2*σ1sq_inv/2)
-    p2 = exp(-(x-m2)^2*σ2sq_inv/2)
-    a1 = -(x-m1)*σ1sq_inv
-    a2 = -(x-m2)*σ2sq_inv
+def bimodal_score_derivative(x,m1,m2,s1,s2,w1,w2):
+    s1sq_inv, s2sq_inv = 1.0/(s1*s1), 1.0/(s2*s2)
+    c = 1/sqrt(2*pi)
+    w1p, w2p = w1*c/s1, w2*c/s2
+    p1 = exp(-(x-m1)^2*s1sq_inv/2)
+    p2 = exp(-(x-m2)^2*s2sq_inv/2)
+    a1 = -(x-m1)*s1sq_inv
+    a2 = -(x-m2)*s2sq_inv
     dp1 = p1*a1
     dp2 = p2*a2
-    da1 = -σ1sq_inv
-    da2 = -σ2sq_inv
+    da1 = -s1sq_inv
+    da2 = -s2sq_inv
     p = w1p*p1 + w2p*p2
     t1 = 1/p*(w1p*dp1 + w2p*dp2)
     t2 = 1/p*(w1p*(dp1*a1 + p1*da1) + w2p*(dp2*a2 + p2*da2))
@@ -144,29 +144,25 @@ def H(p,vp,vpp):
 		Tx: transported samples
 """
 def newton_update(x_gr, v_gr, p_gr, x, n_gr, n):
-	v_int = sp.interp(x_gr, v_gr)
-	Tx = x + v_int(x)
+	v_int = interp(x, x_gr, v_gr)
+	Tx = x + v_int
 	dx_inv = 1/(x_gr[1]-x_gr[0])
 	dx2_inv = dx_inv*dx_inv
-	vp_gr = (v_gr[2:].-v_gr[:n_gr-2]).*dx_inv.*0.5
-	vp_gr .= vp_gr[round(Int64, n_gr/2)]
+	vp_gr = (v_gr[2:]-v_gr[:n_gr-2])*dx_inv*0.5
 	vpp_gr = zeros(n_gr-2)
-	Gp_gr = H(p_gr[2:n_gr-1],vp_gr,vpp_gr)
+	Gp_gr = H(p_gr[1:n_gr-1],vp_gr,vpp_gr)
 
-	Tx_gr = x_gr .+ v_gr
-	Tx_gr = Tx_gr[2:n_gr-1]
-	order_gr = sortperm(Tx_gr)
+	Tx_gr = x_gr + v_gr
+	Tx_gr = Tx_gr[1:n_gr-1]
+	order_gr = argsort(Tx_gr)
 	Tx_gr, Gp_gr = Tx_gr[order_gr], Gp_gr[order_gr]
-	p1_int = linear_interpolation(Tx_gr,Gp_gr,extrapolation_bc=Line())
-	p1_gr = Array(p1_int.(x_gr))
-	return p1_gr, Tx, Tx_gr, Gp_gr  
-end
-"""
+	p1_gr = interp(x_gr,Tx_gr,Gp_gr)
+	return p1_gr, Tx  
 """
 	Main driver function that performs KAM-Newton iteration to construct transport maps
 	Inputs:
-		m_s, σ_s: mean and std of the source distribution
-		m1, m2, σ1, σ2, w1, w2: parameters of the target distribution
+		m_s, s_s: mean and std of the source distribution
+		m1, m2, s1, s2, w1, w2: parameters of the target distribution
 		k: maximum number of iterations of Newton method
 		n_gr: number of grid points for ODE solve in Newton iteration
 		n: number of target samples needed
@@ -179,46 +175,28 @@ end
 		p_gr: values of the final transported score at x_gr
 		q_gr: values of the target score at x_gr
 """
-"""
-function kam_newton(m_s,σ_s,m1,m2,σ1,σ2,w1,w2,k,n_gr,n)
-	#Set up function definitions
-	source_score(x) = unimodal_score(x,m_s,σ_s)
-	tar_score(x) = bimodal_score(x,m1,m2,σ1,σ2,w1,w2)
-	dtar_score(x) = bimodal_score_derivative(x,m1,m2,σ1,σ2,w1,w2)
+def kam_newton(m_s,s_s,m1,m2,s1,s2,w1,w2,k,n_gr,n):
 
 	# Set up initial grid
-	x = m_s .+ σ_s*randn(n)
-	Tx = zeros(n)
-	Tx .= x
-	a, b = min(m1-4*σ1,m2-4*σ2),max(m1+4*σ1,m2+4*σ2)
-	x_gr = Array(LinRange(a,0,n_gr))
-	x_gr_actual = Array(LinRange(a,b,2*n_gr))
+    x = m_s + s_s*random.randn(n)
+    Tx = copy(x)
+    a, b = min(m1-4*s1,m2-4*s2),max(m1+4*s1,m2+4*s2)
+    x_gr = linspace(a,0,n_gr)
 
 	# Set up first iteration
-	p_gr = Array(source_score.(x_gr))
-	q_gr = Array(tar_score.(x_gr))
-	dq_gr = Array(dtar_score.(x_gr))
-	v_gr = zeros(n_gr)	
-	vp = zeros(n_gr-2)	
-	vpp = zeros(n_gr-2)	
-	# Set up some metrics to return
-	normv = zeros(k)
-	x_src = copy(x)
-	@show sum(x_src)/n, sum(x_src.*x_src)/n
-	# Run Newton iterations
-	for i = 1:k
-		v_gr .= solve_newton_step(p_gr, q_gr, dq_gr, a, b, n_gr)
-		normv[i] = norm(v_gr)
-		p1_gr, Tx1, vp1, vpp1 = newton_update(x_gr, v_gr, p_gr, x, n_gr, n)
-		vp .= vp1
-		vpp .= vpp1
-		
-		@show maximum(p1_gr), minimum(p1_gr), maximum(Tx1), minimum(Tx1)	
-		#Update
-		p_gr .= p1_gr
-		x .= Tx
-		Tx .= Tx1
-	end
-	return x_src, Tx, x_gr, v_gr, p_gr, q_gr, normv, vp, vpp 
-end
-"""
+    p_gr = unimodal_score(x_gr, m_s, s_s)
+    q_gr = bimodal_score(x_gr,m1,m2,s1,s2,w1,w2)
+    dq_gr =  bimodal_score_derivative(x_gr,m1,m2,s1,s2,w1,w2)
+    v_gr = zeros(n_gr)	
+    
+    # Set up some metrics to return
+    normv = zeros(k)
+    print(sum(x)/n, sum(x*x)/n)
+	
+    # Run Newton iterations
+    for i in range(k):
+        v_gr = solve_newton_step(p_gr, q_gr, dq_gr, a, b, n_gr)
+        normv[i] = linalg.norm(v_gr)
+        p_gr, Tx = newton_update(x_gr, v_gr, p_gr, Tx, n_gr, n)
+        print(max(p_gr), min(p_gr), max(Tx), min(Tx))
+    return x, Tx, x_gr, v_gr, p_gr, q_gr, normv
