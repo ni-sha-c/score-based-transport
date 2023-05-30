@@ -1,5 +1,9 @@
-using PyPlot
-include("../1DZeroDirichletTransports.jl")
+from matplotlib.pyplot import *
+import sys
+import os
+sys.path.append(os.path.abspath("/home/nisha/Research/faculty/code/score-based-transport/bimodal"))
+from 1DGaussianToBimodal import *
+"""
 function KRMap1(x)
      return ((x+1)^3 - 1)/7
 end
@@ -96,4 +100,4 @@ function test_kam_newton()
     
 	    
 end
-
+"""
