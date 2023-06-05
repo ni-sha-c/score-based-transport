@@ -1,7 +1,16 @@
 from numpy import *
-import scipy as sp
+from scipy.sparse import spdiags
 m1,m2,s1,s2,w1,w2=-0.5,0.5,0.1,0.1,0.5,0.5
-
+def q1(x):
+    return -14/3/(7*x+1)
+def dq1(x):
+    return 98/3/(7*x+1)/(7*x+1)
+def q2(x):
+    return 3/2/(4-3*x) 
+def dq2(x):
+    return 9/2/(4-3*x)**2
+def uni_sc(x):
+    return 0.0*x
 """
 	Solve for v_n:
 	L(q) v_n = (p_n - q)
@@ -16,20 +25,15 @@ m1,m2,s1,s2,w1,w2=-0.5,0.5,0.1,0.1,0.5,0.5
 		v_n: solution v_n at the n points.
 """
 def solve_newton_step(p, q, dq, dx, n):
-    dx_inv = 1/dx
-    dx2_inv = dx_inv*dx_inv
-    A = zeros((n,n))
-    b = p - q
-    sii = -2*dx2_inv
-    fi = 0.5*dx_inv
-    for i in range(1,n-1):
-        qi = q[i]
-        qf = q[i]*fi
-        A[i,i] += sii + dq[i]
-        A[i,i+1] += dx2_inv + qf
-        A[i,i-1] += dx2_inv - qf
+    dxi = 1/dx
+    dx2i = dxi*dxi
+    dqs,qs,ps = dq[1:-1],q[1:-1],p[1:-1]
+    data  = array([dqs-2*dx2i,qs*dxi*0.5+dx2i,-qs*dxi*0.5+dx2i])
+    diags = array([0,1,-1])
+    A = spdiags(data, diags, n-2, n-2).toarray() 
+    b = ps - qs
     v = zeros(n)
-    v[1:n-1] = linalg.solve(A[1:n-1,1:n-1], b[1:n-1])
+    v[1:-1] = linalg.solve(A, b)
     return v
 
 def unimodal_score(x,m,s):
@@ -143,20 +147,19 @@ def H(p,vp,vpp):
 		Tx: transported samples
 """
 def newton_update(x_gr, v_gr, p_gr, x, n_gr, n):
-	v_int = interp(x, x_gr, v_gr)
-	Tx = x + v_int
-	dx_inv = 1/(x_gr[1]-x_gr[0])
-	dx2_inv = dx_inv*dx_inv
-	vp_gr = (v_gr[2:]-v_gr[:n_gr-2])*dx_inv*0.5
-	vpp_gr = zeros(n_gr-2)
-	Gp_gr = H(p_gr[1:n_gr-1],vp_gr,vpp_gr)
-
-	Tx_gr = x_gr + v_gr
-	Tx_gr = Tx_gr[1:n_gr-1]
-	order_gr = argsort(Tx_gr)
-	Tx_gr, Gp_gr = Tx_gr[order_gr], Gp_gr[order_gr]
-	p1_gr = interp(x_gr,Tx_gr,Gp_gr)
-	return p1_gr, Tx  
+    v_int = interp(x, x_gr, v_gr)
+    Tx = x + v_int
+    dx_inv = 1/(x_gr[1]-x_gr[0])
+    dx2_inv = dx_inv*dx_inv
+    vp_gr = (v_gr[2:]-v_gr[:-2])*dx_inv*0.5
+    vpp_gr = (-2*v_gr[1:-1]+v_gr[:-2]+v_gr[2:])*dx2_inv
+    Gp_gr = H(p_gr[1:-1],vp_gr,vpp_gr)
+    Tx_gr = x_gr + v_gr
+    Tx_gr = Tx_gr[1:-1]
+    order_gr = argsort(Tx_gr)
+    Tx_gr, Gp_gr = Tx_gr[order_gr], Gp_gr[order_gr]
+    p1_gr = interp(x_gr,Tx_gr,Gp_gr)
+    return p1_gr, Tx  
 """
 	Main driver function that performs KAM-Newton iteration to construct transport maps
 	Inputs:
@@ -182,8 +185,7 @@ def kam_newton(x,k,n_gr,n,tar_sc,dtar_sc,src_sc):
     q_gr = tar_sc(x_gr)
     dq_gr = dtar_sc(x_gr)
     normv = zeros(k)
-    print(sum(x)/n, sum(x*x)/n)
-	# Run Newton iterations
+	#Run Newton iterations
     for i in range(k):
         v_gr = solve_newton_step(p_gr, q_gr, dq_gr, dx, n_gr)
         normv[i] = linalg.norm(v_gr)
