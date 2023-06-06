@@ -17,12 +17,12 @@ def plot_target():
     ax.yaxis.set_tick_params(labelsize=24)
 
 def test_kam_newton_unbounded(k,msrc,ssrc,m1,m2,s1,s2,w1,w2):
-    n_gr,n = 512,20000
+    n_gr,n = 128,20000
     x = msrc+ssrc*random.randn(n)
     tar_sc = lambda x: bimodal_score(x,m1,m2,s1,s2,w1,w2)
     dtar_sc = lambda x: bimodal_score_derivative(x,m1,m2,s1,s2,w1,w2)
     src_sc = lambda x: gaussian_score(x,msrc,ssrc)
-    Tx, x_gr, v_gr, p_gr, q_gr, normv = kam_newton(x,k,n_gr,n,tar_sc,dtar_sc,src_sc)
+    Tx, x_gr, v_gr, p_gr, q_gr, normv = kam_newton(x,m1-3*s1,m2+3*s2,k,n_gr,n,tar_sc,dtar_sc,src_sc)
     x_tar = sample_bimodal(n,m1,m2,s1,s2,w1,w2) 
     fig, ax = subplots()
     ax.set_xlabel("x", fontsize=24)
@@ -47,6 +47,31 @@ def test_kam_newton_unbounded(k,msrc,ssrc,m1,m2,s1,s2,w1,w2):
     ax.legend(fontsize=20,framealpha=0.1)
     tight_layout()
     savefig("../plots/hist-k$k-ub.png")	
+
+    fig, ax = subplots()
+    ax.set_xlabel("x", fontsize=24)
+    ax.plot(x_gr, p_gr, "v", ms=6.0, label="KAM score")
+    ax.plot(x_gr, q_gr, "o", ms=3.0, label="tar score")
+    ax.xaxis.set_tick_params(labelsize=24)
+    ax.yaxis.set_tick_params(labelsize=24)
+    ax.legend(fontsize=20,markerscale=3,framealpha=0.1)
+    ax.grid(True)
+    ax.set_title("After {} iteration(s)".format(k),fontsize=24)
+    tight_layout()
+    savefig("../plots/scores-k{}-ub.png".format(k))	
+ 
+    fig, ax = subplots()
+    ax.plot(x, Tx, "o", label="KAM T(x)")
+    ax.plot(x, x, "v", label="x")
+    ax.xaxis.set_tick_params(labelsize=24)
+    ax.yaxis.set_tick_params(labelsize=24)
+    ax.legend(fontsize=20,markerscale=3,framealpha=0.1)
+    ax.grid(True)
+    ax.set_xlabel("x", fontsize=24)
+    ax.set_ylabel("T(x)", fontsize=24)
+    ax.set_title("After {} iteration(s)".format(k),fontsize=24)
+    tight_layout()
+    savefig("../plots/transport-k{}-ub.png".format(k))
 
     
 def test_kam_newton_bounded():
@@ -104,7 +129,6 @@ def test_kam_newton_bounded():
     ax.plot(x1, Tx1, "o", label="KAM T1")
     ax.plot(x1, KRMap1(x1), "v",ms=3, label="KR T1")
     ax.xaxis.set_tick_params(labelsize=24)
-
     ax.plot(x2, Tx2, "o", label="KAM T2")
     ax.plot(x2, KRMap2(x2), "v", ms=3,label="KR T2")
     ax.yaxis.set_tick_params(labelsize=24)

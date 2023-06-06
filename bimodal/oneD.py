@@ -157,7 +157,7 @@ def newton_update(x_gr, v_gr, p_gr, x, n_gr, n):
     Tx_gr = Tx_gr[1:-1]
     order_gr = argsort(Tx_gr)
     Tx_gr, Gp_gr = Tx_gr[order_gr], Gp_gr[order_gr]
-    p1_gr_fn = spin.interp1d(Tx_gr,Gp_gr,kind="linear",fill_value="extrapolate")
+    p1_gr_fn = spin.interp1d(Tx_gr,Gp_gr,kind="slinear",fill_value="extrapolate")
     return p1_gr_fn(x_gr), x+v_int(x)
 """
 	Main driver function that performs KAM-Newton iteration to construct transport maps
@@ -189,5 +189,5 @@ def kam_newton(x,a,b,k,n_gr,n,tar_sc,dtar_sc,src_sc):
         v_gr = solve_newton_step(p_gr, q_gr, dq_gr, dx, n_gr)
         normv[i] = linalg.norm(v_gr)
         p_gr, Tx = newton_update(x_gr, v_gr, p_gr, Tx, n_gr, n)
-        print(max(p_gr), min(p_gr), max(Tx), min(Tx))
+        print(max(q_gr), min(q_gr), max(p_gr), min(p_gr), max(Tx), min(Tx))
     return Tx, x_gr, v_gr, p_gr, q_gr, normv
