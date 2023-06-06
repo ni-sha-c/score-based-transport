@@ -16,11 +16,44 @@ def plot_target():
     ax.xaxis.set_tick_params(labelsize=24)
     ax.yaxis.set_tick_params(labelsize=24)
 
-def test_kam_newton():
-    k,n_gr,n = 2,128,30000
+def test_kam_newton_unbounded(k,msrc,ssrc,m1,m2,s1,s2,w1,w2):
+    n_gr,n = 512,20000
+    x = msrc+ssrc*random.randn(n)
+    tar_sc = lambda x: bimodal_score(x,m1,m2,s1,s2,w1,w2)
+    dtar_sc = lambda x: bimodal_score_derivative(x,m1,m2,s1,s2,w1,w2)
+    src_sc = lambda x: gaussian_score(x,msrc,ssrc)
+    Tx, x_gr, v_gr, p_gr, q_gr, normv = kam_newton(x,k,n_gr,n,tar_sc,dtar_sc,src_sc)
+    x_tar = sample_bimodal(n,m1,m2,s1,s2,w1,w2) 
+    fig, ax = subplots()
+    ax.set_xlabel("x", fontsize=24)
+    ax.plot(x_gr, v_gr, "o", label="v")
+    ax.xaxis.set_tick_params(labelsize=24)
+    ax.yaxis.set_tick_params(labelsize=24)
+    ax.legend(fontsize=24,framealpha=0.1)
+    ax.set_title("After {} iteration(s)".format(k),fontsize=24)
+    ax.grid(True)
+    tight_layout()
+    ax.yaxis.offsetText.set_fontsize(24)
+    savefig("../plots/v$k-ub.png")
+    
+    fig, ax = subplots()
+    ax.set_xlabel("x", fontsize=24)
+    ax.xaxis.set_tick_params(labelsize=24)
+    ax.yaxis.set_tick_params(labelsize=24)
+    ax.hist(Tx,bins=100,lw=3.0,histtype="step",density=True,label=R"KAM $\nu $")
+    ax.hist(x_tar,bins=100,lw=3.0,histtype="step",density=True,label=R"$\nu $")
+    ax.set_title("After {} iteration(s)".format(k),fontsize=24)
+    ax.grid(True)
+    ax.legend(fontsize=20,framealpha=0.1)
+    tight_layout()
+    savefig("../plots/hist-k$k-ub.png")	
+
+    
+def test_kam_newton_bounded():
+    k,n_gr,n = 2,1024,50000
     x1,x2 = random.rand(n),random.rand(n)
-    Tx1, x_gr1, v_gr1, p_gr1, q_gr1, normv1 = kam_newton(x1,k,n_gr,n,q1,dq1,uni_sc)
-    Tx2, x_gr2, v_gr2, p_gr2, q_gr2, normv2 = kam_newton(x2,k,n_gr,n,q2,dq2,uni_sc)
+    Tx1, x_gr1, v_gr1, p_gr1, q_gr1, normv1 = kam_newton(x1,0,1,k,n_gr,n,q1,dq1,uni_sc)
+    Tx2, x_gr2, v_gr2, p_gr2, q_gr2, normv2 = kam_newton(x2,0,1,k,n_gr,n,q2,dq2,uni_sc)
     x_source = random.rand(n)
     x_tar1 = KRMap1(x_source)
     x_tar2 = KRMap2(x_source)
@@ -47,7 +80,7 @@ def test_kam_newton():
     ax.hist(Tx2,bins=75,lw=3.0,histtype="step",density=True,label=R"KAM $\nu 2$")
     ax.hist(x_tar1,bins=75,lw=3.0,histtype="step",density=True,label=R"$\nu 1$")
     ax.hist(x_tar2,bins=75,lw=3.0,histtype="step",density=True,label=R"$\nu 2$")
-    ax.set_title("After $k iteration(s)",fontsize=24)
+    ax.set_title("After {} iteration(s)".format(k),fontsize=24)
     ax.grid(True)
     ax.legend(fontsize=20,framealpha=0.1)
     tight_layout()
@@ -63,7 +96,7 @@ def test_kam_newton():
     ax.yaxis.set_tick_params(labelsize=24)
     ax.legend(fontsize=20,markerscale=3,framealpha=0.1)
     ax.grid(True)
-    ax.set_title("After $k iteration(s)",fontsize=24)
+    ax.set_title("After {} iteration(s)".format(k),fontsize=24)
     tight_layout()
     savefig("../plots/scores-k{}-py.png".format(k))	
     
