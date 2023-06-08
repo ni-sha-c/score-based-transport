@@ -74,8 +74,8 @@ def bimodal_prob(x,m1=-2,m2=2,s1=1,s2=1,w1=1/3,w2=2/3):
     s1sq_inv, s2sq_inv = 1.0/(s1*s1), 1.0/(s2*s2)
     c = 1/sqrt(2*pi)
     w1p, w2p = w1*c/s1, w2*c/s2
-    p_g1 = exp(-(x-m1)^2*s1sq_inv/2)
-    p_g2 = exp(-(x-m2)^2*s2sq_inv/2)
+    p_g1 = exp(-(x-m1)**2*s1sq_inv/2)
+    p_g2 = exp(-(x-m2)**2*s2sq_inv/2)
     px = w1p*p_g1 + w2p*p_g2
     return px
 """

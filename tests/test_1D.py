@@ -1,4 +1,5 @@
 from matplotlib.pyplot import *
+import scipy.stats as sst
 import sys
 import os
 sys.path.append(os.path.abspath("/home/nisha/Research/faculty/code/score-based-transport/bimodal"))
@@ -8,6 +9,27 @@ def KRMap1(x):
     return ((x+1)**3 - 1)/7
 def KRMap2(x):
     return 4/3 - (2-x)**2/3
+def KRMap_Gau_biGau(x,msrc,ssrc,m1,m2,s1,s2,w1,w2):
+    spi = 1/sqrt(2*pi)
+    c1, c2 = w1*spi/s1, w2*spi/s2
+    cdf_biGau = lambda x: w1*sst.norm.cdf(s1*x+m1)+w2*sst.norm.cdf(s2*x+m2)
+    cdf_Gau = lambda x: sst.norm.cdf(x)
+    x = linspace(m1-3*s1,m2+3*s2,500)
+    cdfx = cdf_biGau(x)
+    z = polyfit(cdfx, x, 17)
+    c = linspace(0,1,200)
+    p = poly1d(z)
+    fig, ax = subplots()
+    ax.set_xlabel("prob", fontsize=24)
+    ax.plot(cdfx, x, "o", label="cdf$^{-1}$(x)")
+    ax.plot(c,p(c), "v", label="cdf$^{-1}$ fit(x)")
+    ax.xaxis.set_tick_params(labelsize=24)
+    ax.yaxis.set_tick_params(labelsize=24)
+    ax.legend(fontsize=24,framealpha=0.1)
+    ax.grid(True)
+    tight_layout()
+
+
 def plot_target():
     x = random.rand(100000)
     y = KRMap1(x)
@@ -22,8 +44,9 @@ def test_kam_newton_unbounded(k,msrc,ssrc,m1,m2,s1,s2,w1,w2):
     tar_sc = lambda x: bimodal_score(x,m1,m2,s1,s2,w1,w2)
     dtar_sc = lambda x: bimodal_score_derivative(x,m1,m2,s1,s2,w1,w2)
     src_sc = lambda x: gaussian_score(x,msrc,ssrc)
-    Tx, x_gr, v_gr, p_gr, q_gr, normv = kam_newton(x,m1-3*s1,m2+3*s2,k,n_gr,n,tar_sc,dtar_sc,src_sc)
-    x_tar = sample_bimodal(n,m1,m2,s1,s2,w1,w2) 
+    Tx, x_gr, v_gr, p_gr, q_gr, normv = kam_newton(x,m1-6*s1,m2+6*s2,k,n_gr,n,tar_sc,dtar_sc,src_sc)
+    Tx_gr = linspace(min(Tx), max(Tx), n_gr)
+    px_tar = bimodal_prob(Tx_gr,m1,m2,s1,s2,w1,w2) 
     fig, ax = subplots()
     ax.set_xlabel("x", fontsize=24)
     ax.plot(x_gr, v_gr, "o", label="v")
@@ -41,7 +64,7 @@ def test_kam_newton_unbounded(k,msrc,ssrc,m1,m2,s1,s2,w1,w2):
     ax.xaxis.set_tick_params(labelsize=24)
     ax.yaxis.set_tick_params(labelsize=24)
     ax.hist(Tx,bins=100,lw=3.0,histtype="step",density=True,label=R"KAM $\nu $")
-    ax.hist(x_tar,bins=100,lw=3.0,histtype="step",density=True,label=R"$\nu $")
+    ax.plot(Tx_gr,px_tar,lw=3.0,label=R"$\nu $")
     ax.set_title("After {} iteration(s)".format(k),fontsize=24)
     ax.grid(True)
     ax.legend(fontsize=20,framealpha=0.1)
