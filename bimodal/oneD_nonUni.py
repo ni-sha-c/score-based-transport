@@ -108,16 +108,25 @@ def sample_bimodal(n,m1=-2,m2=2,s1=1,s2=1,w1=1/3,w2=2/3):
 	Output:
 		v_n: solution v_n at the n points.
 """
-def solve_newton_step(p, q, dq, dx, n):
+def help_solver(q, dq, dx, n):
     dxi = 1/dx
     dx2i = dxi*dxi
-    dqs,qs,ps = dq[1:-1],q[1:-1],p[1:-1]
+    dqs,qs = dq[1:-1],q[1:-1]
     data  = array([dqs-2*dx2i,qs*dxi*0.5+dx2i,-qs*dxi*0.5+dx2i])
     diags = array([0,1,-1])
     A = spdiags(data, diags, n-2, n-2).toarray() 
+    P = diag(ones(n-2))
+    dqm, dqst = abs(dq).mean(), abs(dq).std()
+    inds = (abs(dqs) > dqm + 2*dqst)
+    P[inds, inds] = 0.01
+    return A, P
+
+def solve_newton_step(p, q, A, P, n):
+    qs, ps = q[1:-1], p[1:-1]
     b = ps - qs
     v = zeros(n)
-    v[1:-1] = linalg.solve(A, b)
+    ATP = dot(A.T,P)
+    v[1:-1] = linalg.solve(dot(ATP, A), dot(ATP,b))
     return v
 """
 	Evaluate the transformed score function G(p,Id+v)
@@ -184,9 +193,12 @@ def kam_newton(x,a,b,k,n_gr,n,tar_sc,dtar_sc,src_sc):
     q_gr = tar_sc(x_gr)
     dq_gr = dtar_sc(x_gr)
     normv = zeros(k)
-	#Run Newton iterations
+    A, P = help_solver(q_gr, dq_gr, dx, n_gr)
+    print(where(P==0.01))
+    #P = eye(n_gr-2)
+    #Run Newton iterations
     for i in range(k):
-        v_gr = solve_newton_step(p_gr, q_gr, dq_gr, dx, n_gr)
+        v_gr = solve_newton_step(p_gr, q_gr, A, P, n_gr)
         normv[i] = linalg.norm(v_gr)
         p_gr, Tx = newton_update(x_gr, v_gr, p_gr, Tx, n_gr, n)
         print(max(q_gr), min(q_gr), max(p_gr), min(p_gr), max(Tx), min(Tx))

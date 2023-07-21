@@ -3,7 +3,7 @@ import scipy.stats as sst
 import sys
 import os
 sys.path.append(os.path.abspath("/home/nisha/Research/faculty/code/score-based-transport/bimodal"))
-from oneD import *
+from oneD_nonUni import *
 
 def KRMap1(x):
     return ((x+1)**3 - 1)/7
@@ -37,6 +37,38 @@ def plot_target():
     ax.hist(y, bins=500)
     ax.xaxis.set_tick_params(labelsize=24)
     ax.yaxis.set_tick_params(labelsize=24)
+
+def plot_scores_for_diff_weights(m1,m2,s1,s2):
+    x = linspace(-10,10,1024)
+    q1 = bimodal_score(x,m1,m2,s1,s2,0.5,0.5)
+    q2 = bimodal_score(x,m1,m2,s1,s2,0.25,0.75)
+    q3 = bimodal_score(x,m1,m2,s1,s2,0.125,0.875)
+    q4 = bimodal_score(x,m1,m2,s1,s2,0.0625,0.9375)
+    fig, ax = subplots()
+    ax.plot(x,q1,lw=2.5,label="0.5")
+    ax.plot(x,q2,lw=2.5,label="0.25")
+    ax.plot(x,q3,lw=2.5,label="0.125")
+    ax.plot(x,q4,lw=2.5,label="0.0625")
+    ax.xaxis.set_tick_params(labelsize=16)
+    ax.yaxis.set_tick_params(labelsize=16)
+    ax.legend(fontsize=16)
+    ax.grid(True)
+
+def plot_scores_derivs_for_diff_weights(m1,m2,s1,s2):
+    x = linspace(-10,10,1024)
+    q1 = bimodal_score_derivative(x,m1,m2,s1,s2,0.5,0.5)
+    q2 = bimodal_score_derivative(x,m1,m2,s1,s2,0.25,0.75)
+    q3 = bimodal_score_derivative(x,m1,m2,s1,s2,0.125,0.875)
+    q4 = bimodal_score_derivative(x,m1,m2,s1,s2,0.0625,0.9375)
+    fig, ax = subplots()
+    ax.plot(x,q1,lw=2.5,label="0.5")
+    ax.plot(x,q2,lw=2.5,label="0.25")
+    ax.plot(x,q3,lw=2.5,label="0.125")
+    ax.plot(x,q4,lw=2.5,label="0.0625")
+    ax.xaxis.set_tick_params(labelsize=16)
+    ax.yaxis.set_tick_params(labelsize=16)
+    ax.legend(fontsize=16)
+    ax.grid(True)
 
 def test_kam_newton_unbounded(k,msrc,ssrc,m1,m2,s1,s2,w1,w2):
     n_gr,n = 1024,20000
