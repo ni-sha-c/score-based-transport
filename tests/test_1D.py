@@ -71,7 +71,7 @@ def plot_scores_derivs_for_diff_weights(m1,m2,s1,s2):
     ax.grid(True)
 
 def test_kam_newton_unbounded(k,msrc,ssrc,m1,m2,s1,s2,w1,w2):
-    n_gr,n = 1024,20000
+    n_gr,n = 4096,20000
     x = msrc+ssrc*random.randn(n)
     tar_sc = lambda x: bimodal_score(x,m1,m2,s1,s2,w1,w2)
     dtar_sc = lambda x: bimodal_score_derivative(x,m1,m2,s1,s2,w1,w2)
