@@ -120,6 +120,23 @@ def help_solver(q, dq, dx, n):
     inds = (abs(dqs) > dqm + 2*dqst)
     P[inds, inds] = 0.01
     return A, P
+"""
+This function gives grid locations based on following assumptions:
+    1. There are 2 boundary layers and 1 interior layer in the center.
+    2. Density of grid points in each of them is the same.
+    3. Total number of points is n
+    4. Density of points in layer (interior/boundary) is 10x that in nonlayer
+"""
+def adapt_grid(q, dx, n):
+   nl_dens =  
+
+def fd_coeff_2(x, a, b):
+    bx, xa, ba = b-x,x-a,b-a
+    den = xa*bx*ba
+    return array([2*bx/den, -2*ba/den, 2*xa/den])
+def fd_coeff_1(x, a, b):
+    ba = b-a
+    return array([-1/ba, 0, 1/ba])
 
 def solve_newton_step(p, q, A, P, n):
     qs, ps = q[1:-1], p[1:-1]
@@ -193,7 +210,7 @@ def kam_newton(x,a,b,k,n_gr,n,tar_sc,dtar_sc,src_sc):
     q_gr = tar_sc(x_gr)
     dq_gr = dtar_sc(x_gr)
     normv = zeros(k)
-    A, P = help_solver(q_gr, dq_gr, dx, n_gr)
+    A, P = help_solver(a, b, q_gr, dq_gr, dx, n_gr)
     print(where(P==0.01))
     #P = eye(n_gr-2)
     #Run Newton iterations
