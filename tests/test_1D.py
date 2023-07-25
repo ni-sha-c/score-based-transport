@@ -70,13 +70,15 @@ def plot_scores_derivs_for_diff_weights(m1,m2,s1,s2):
     ax.legend(fontsize=16)
     ax.grid(True)
 
+
+
 def test_kam_newton_unbounded(k,msrc,ssrc,m1,m2,s1,s2,w1,w2):
-    n_gr,n = 4096,20000
+    n_gr,n = 4096*2,1000000
     x = msrc+ssrc*random.randn(n)
     tar_sc = lambda x: bimodal_score(x,m1,m2,s1,s2,w1,w2)
     dtar_sc = lambda x: bimodal_score_derivative(x,m1,m2,s1,s2,w1,w2)
     src_sc = lambda x: gaussian_score(x,msrc,ssrc)
-    Tx, x_gr, v_gr, p_gr, q_gr, normv = kam_newton(x,m1-10*s1,m2+10*s2,k,n_gr,n,tar_sc,dtar_sc,src_sc)
+    Tx, x_gr, v_gr, p_gr, q_gr, normv = kam_newton(x,m1-8*s1,m2+8*s2,k,n_gr,n,tar_sc,dtar_sc,src_sc)
     Tx_gr = linspace(min(Tx), max(Tx), n_gr)
     px_tar = bimodal_prob(Tx_gr,m1,m2,s1,s2,w1,w2) 
     fig, ax = subplots()

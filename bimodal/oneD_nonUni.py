@@ -108,28 +108,50 @@ def sample_bimodal(n,m1=-2,m2=2,s1=1,s2=1,w1=1/3,w2=2/3):
 	Output:
 		v_n: solution v_n at the n points.
 """
-def help_solver(q, dq, dx, n):
+def help_solver(a, b, q, dq, dx, n):
     dxi = 1/dx
     dx2i = dxi*dxi
     dqs,qs = dq[1:-1],q[1:-1]
     data  = array([dqs-2*dx2i,qs*dxi*0.5+dx2i,-qs*dxi*0.5+dx2i])
     diags = array([0,1,-1])
     A = spdiags(data, diags, n-2, n-2).toarray() 
-    P = diag(ones(n-2))
-    dqm, dqst = abs(dq).mean(), abs(dq).std()
-    inds = (abs(dqs) > dqm + 2*dqst)
-    P[inds, inds] = 0.01
-    return A, P
+    return A
 """
 This function gives grid locations based on following assumptions:
-    1. There are 2 boundary layers and 1 interior layer in the center.
-    2. Density of grid points in each of them is the same.
+    1. There are 2 boundary layers and 1 interior layer centered at argmax dq.
+    2. Width of interior layer is 3: set manually for weighted sums of N(-/+2,1) 
     3. Total number of points is n
     4. Density of points in layer (interior/boundary) is 10x that in nonlayer
 """
-def adapt_grid(q, dx, n):
-   nl_dens =  
 
+def adapt_grid(a, b, dq, dx, n):
+    uni_dens, dens_fac = (b-a)/dx, sqrt(10)
+    int_dens, bl_dens = dens_fac*uni_dens, dens_fac*uni_dens
+    int_wid, bl_wid, int_cent = 3.0, 2.0, argmax(dq)*dx + a
+    nl_wid = b - a - 2*bl_wid - int_wid
+    nl_dens = int((n - int_dens*int_wid - 2*bl_dens*bl_wid)/nl_wid)
+    
+    x = zeros(n)
+    # left boundary layer
+    lbl_beg, lbl_end, n_bl  = a, a+bl_wid, int(bl_dens*bl_wid)
+    x[:n_bl] = array(linspace(lbl_beg, lbl_end, n_bl))
+    # nonlayer
+    nl1_end, n_nl1 = int_cent - int_wid/2, int((nl_end-lbl_end)*nl_dens) 
+    x[n_bl:n_nl1+n_bl] = array(linspace(lbl_end, nl1_end, n_nl1))
+    # interior layer
+    int_end, n_int = int_cent + int_wid/2, int(int_den*int_wid)
+    x[n_bl+n_nl1:n_bl+n_nl1+n_int] = array(linspace(nl_end, int_end, n_int))
+    # nonlayer
+    nl2_end, n_nl2 = b-bl_wid, int(nl_den*(nl2_end-int_end))
+    nl_ind = n_bl+n_nl1+n_int
+    x[nl_ind:nl_ind+n_nl2] = array(linspace(int_end,nl2_end,n_nl2))
+    # right boundary layer
+    rbl_ind = nl_ind + n_nl2
+    x[rbl_ind:n] = array(linspace(nl2_end, b, n - rbl_ind))
+    return x
+
+
+"""
 def fd_coeff_2(x, a, b):
     bx, xa, ba = b-x,x-a,b-a
     den = xa*bx*ba
@@ -137,13 +159,13 @@ def fd_coeff_2(x, a, b):
 def fd_coeff_1(x, a, b):
     ba = b-a
     return array([-1/ba, 0, 1/ba])
+"""
 
-def solve_newton_step(p, q, A, P, n):
+def solve_newton_step(p, q, A, n):
     qs, ps = q[1:-1], p[1:-1]
     b = ps - qs
     v = zeros(n)
-    ATP = dot(A.T,P)
-    v[1:-1] = linalg.solve(dot(ATP, A), dot(ATP,b))
+    v[1:-1] = linalg.solve(A, b)
     return v
 """
 	Evaluate the transformed score function G(p,Id+v)
@@ -183,7 +205,7 @@ def newton_update(x_gr, v_gr, p_gr, x, n_gr, n):
     Tx_gr = Tx_gr[1:-1]
     order_gr = argsort(Tx_gr)
     Tx_gr, Gp_gr = Tx_gr[order_gr], Gp_gr[order_gr]
-    p1_gr_fn = spin.interp1d(Tx_gr,Gp_gr,kind="slinear",fill_value="extrapolate")
+    p1_gr_fn = spin.interp1d(Tx_gr,Gp_gr,kind="linear",fill_value="extrapolate")
     return p1_gr_fn(x_gr), x+v_int(x)
 """
 	Main driver function that performs KAM-Newton iteration to construct transport maps
@@ -210,12 +232,10 @@ def kam_newton(x,a,b,k,n_gr,n,tar_sc,dtar_sc,src_sc):
     q_gr = tar_sc(x_gr)
     dq_gr = dtar_sc(x_gr)
     normv = zeros(k)
-    A, P = help_solver(a, b, q_gr, dq_gr, dx, n_gr)
-    print(where(P==0.01))
-    #P = eye(n_gr-2)
+    A = help_solver(a, b, q_gr, dq_gr, dx, n_gr)
     #Run Newton iterations
     for i in range(k):
-        v_gr = solve_newton_step(p_gr, q_gr, A, P, n_gr)
+        v_gr = solve_newton_step(p_gr, q_gr, A, n_gr)
         normv[i] = linalg.norm(v_gr)
         p_gr, Tx = newton_update(x_gr, v_gr, p_gr, Tx, n_gr, n)
         print(max(q_gr), min(q_gr), max(p_gr), min(p_gr), max(Tx), min(Tx))
