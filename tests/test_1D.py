@@ -71,6 +71,20 @@ def plot_scores_derivs_for_diff_weights(m1,m2,s1,s2):
     ax.grid(True)
 
 
+def plot_adapted_grid(m1,m2,s1,s2,w1,w2,a,b,n):
+    z = linspace(a,b,n)
+    dz = z[1]-z[0]
+    dq = bimodal_score_derivative(z,m1,m2,s1,s2,w1,w2)
+    x = adapt_grid(a,b,dq,dz,n)
+    fig, ax = subplots()
+    ax.plot(z,x,lw=2.5)
+    ax.xaxis.set_tick_params(labelsize=16)
+    ax.yaxis.set_tick_params(labelsize=16)
+    ax.grid(True)
+    ax.set_xlabel("Uniform grid", fontsize=24)
+    ax.set_ylabel("Adapted grid", fontsize=24)
+    tight_layout() 
+
 
 def test_kam_newton_unbounded(k,msrc,ssrc,m1,m2,s1,s2,w1,w2):
     n_gr,n = 4096*2,1000000

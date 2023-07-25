@@ -125,24 +125,31 @@ This function gives grid locations based on following assumptions:
 """
 
 def adapt_grid(a, b, dq, dx, n):
-    uni_dens, dens_fac = (b-a)/dx, sqrt(10)
-    int_dens, bl_dens = dens_fac*uni_dens, dens_fac*uni_dens
+    uni_dens, dens_fac = n/(b-a), 5
     int_wid, bl_wid, int_cent = 3.0, 2.0, argmax(dq)*dx + a
     nl_wid = b - a - 2*bl_wid - int_wid
-    nl_dens = int((n - int_dens*int_wid - 2*bl_dens*bl_wid)/nl_wid)
+    nl_dens = n/(dens_fac*(b-a) - 3*nl_wid)
+    int_dens, bl_dens = dens_fac*nl_dens, dens_fac*nl_dens
     
+    print("Densities of boundary, interior, normal layers", bl_dens, int_dens, nl_dens)
+
     x = zeros(n)
     # left boundary layer
     lbl_beg, lbl_end, n_bl  = a, a+bl_wid, int(bl_dens*bl_wid)
     x[:n_bl] = array(linspace(lbl_beg, lbl_end, n_bl))
     # nonlayer
-    nl1_end, n_nl1 = int_cent - int_wid/2, int((nl_end-lbl_end)*nl_dens) 
+    nl1_end = int_cent - int_wid/2
+    n_nl1 = int((nl1_end-lbl_end)*nl_dens) 
+    print("Beginning of left normal layer", lbl_end)
+    print("End of left normal layer", nl1_end)
+    print("Number of elements in left normal layer", n_nl1)
     x[n_bl:n_nl1+n_bl] = array(linspace(lbl_end, nl1_end, n_nl1))
     # interior layer
-    int_end, n_int = int_cent + int_wid/2, int(int_den*int_wid)
-    x[n_bl+n_nl1:n_bl+n_nl1+n_int] = array(linspace(nl_end, int_end, n_int))
+    int_end, n_int = int_cent + int_wid/2, int(int_dens*int_wid)
+    x[n_bl+n_nl1:n_bl+n_nl1+n_int] = array(linspace(nl1_end, int_end, n_int))
     # nonlayer
-    nl2_end, n_nl2 = b-bl_wid, int(nl_den*(nl2_end-int_end))
+    nl2_end = b-bl_wid
+    n_nl2 = int(nl_dens*(nl2_end-int_end))
     nl_ind = n_bl+n_nl1+n_int
     x[nl_ind:nl_ind+n_nl2] = array(linspace(int_end,nl2_end,n_nl2))
     # right boundary layer
