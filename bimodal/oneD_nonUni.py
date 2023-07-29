@@ -1,5 +1,5 @@
 from numpy import *
-from scipy.sparse import spdiags
+import scipy.sparse as scsp
 import scipy.interpolate as spin
 m1,m2,s1,s2,w1,w2=-0.5,0.5,0.1,0.1,0.5,0.5
 def q1(x):
@@ -95,27 +95,7 @@ def sample_bimodal(n,m1=-2,m2=2,s1=1,s2=1,w1=1/3,w2=2/3):
         else: 
             x[i] = m2 + s2*random.randn()
     return x
-"""
-	Solve for v_n:
-	L(q) v_n = (p_n - q)
-	where
-		L(q) = d^2/dx^2 + q d/dx + dq/dx
-	Inputs:
-		p_n: intermediate score at the n points
-		q: target score at the n points
-		dq/dx: dq/dx at the n points
-		n, a, b: used to grid [a,b] with n uniform points 
-	Output:
-		v_n: solution v_n at the n points.
-"""
-def help_solver(a, b, q, dq, dx, n):
-    dxi = 1/dx
-    dx2i = dxi*dxi
-    dqs,qs = dq[1:-1],q[1:-1]
-    data  = array([dqs-2*dx2i,qs*dxi*0.5+dx2i,-qs*dxi*0.5+dx2i])
-    diags = array([0,1,-1])
-    A = spdiags(data, diags, n-2, n-2).toarray() 
-    return A
+
 """
 This function gives grid locations based on following assumptions:
     1. There are 2 boundary layers and 1 interior layer centered at argmax dq.
@@ -123,12 +103,11 @@ This function gives grid locations based on following assumptions:
     3. Total number of points is n
     4. Density of points in layer (interior/boundary) is 10x that in nonlayer
 """
-
 def adapt_grid(a, b, dq, dx, n):
-    uni_dens, dens_fac = n/(b-a), 5
+    dens_fac = 5
     int_wid, bl_wid, int_cent = 3.0, 2.0, argmax(dq)*dx + a
     nl_wid = b - a - 2*bl_wid - int_wid
-    nl_dens = n/(dens_fac*(b-a) - 3*nl_wid)
+    nl_dens = n/(dens_fac*(b-a) - (dens_fac-1)*nl_wid)
     int_dens, bl_dens = dens_fac*nl_dens, dens_fac*nl_dens
     
     print("Densities of boundary, interior, normal layers", bl_dens, int_dens, nl_dens)
@@ -157,8 +136,6 @@ def adapt_grid(a, b, dq, dx, n):
     x[rbl_ind:n] = array(linspace(nl2_end, b, n - rbl_ind))
     return x
 
-
-"""
 def fd_coeff_2(x, a, b):
     bx, xa, ba = b-x,x-a,b-a
     den = xa*bx*ba
@@ -166,7 +143,31 @@ def fd_coeff_2(x, a, b):
 def fd_coeff_1(x, a, b):
     ba = b-a
     return array([-1/ba, 0, 1/ba])
+
+
 """
+	Solve for v_n:
+	L(q) v_n = (p_n - q)
+	where
+		L(q) = d^2/dx^2 + q d/dx + dq/dx
+	Inputs:
+		p_n: intermediate score at the n points
+		q: target score at the n points
+		dq/dx: dq/dx at the n points
+		n, a, b: used to grid [a,b] with n uniform points 
+	Output:
+		v_n: solution v_n at the n points.
+"""
+def help_solver(x, q, dq, n):
+    dqs,qs = dq[1:-1],q[1:-1]
+    A = zeros((n,n))
+    for i in range(1,n-1):
+        A[i,i-1:i+2] = fd_coeff_2(x[i],x[i-1],x[i+1]) + \
+                        fd_coeff_1(x[i],x[i-1],x[i+1])*q[i]
+        A[i,i] += dq[i]
+    print(A)
+    A = scsp.csr_matrix(A) 
+    return A
 
 def solve_newton_step(p, q, A, n):
     qs, ps = q[1:-1], p[1:-1]
@@ -233,13 +234,18 @@ def newton_update(x_gr, v_gr, p_gr, x, n_gr, n):
 def kam_newton(x,a,b,k,n_gr,n,tar_sc,dtar_sc,src_sc):
     Tx = copy(x)
     x_gr = linspace(a,b,n_gr)
+    dq_gr = dtar_sc(x_gr)
     dx = x_gr[1] - x_gr[0]
+    x_gr = adapt_grid(a,b,dq_gr,dx,n_gr) 
+    print(x_gr) 
     # Set up first iteration
     p_gr = src_sc(x_gr)
     q_gr = tar_sc(x_gr)
     dq_gr = dtar_sc(x_gr)
     normv = zeros(k)
-    A = help_solver(a, b, q_gr, dq_gr, dx, n_gr)
+    A = help_solver(x_gr, q_gr, dq_gr, n_gr)
+    
+    """
     #Run Newton iterations
     for i in range(k):
         v_gr = solve_newton_step(p_gr, q_gr, A, n_gr)
@@ -247,3 +253,4 @@ def kam_newton(x,a,b,k,n_gr,n,tar_sc,dtar_sc,src_sc):
         p_gr, Tx = newton_update(x_gr, v_gr, p_gr, Tx, n_gr, n)
         print(max(q_gr), min(q_gr), max(p_gr), min(p_gr), max(Tx), min(Tx))
     return Tx, x_gr, v_gr, p_gr, q_gr, normv
+    """
