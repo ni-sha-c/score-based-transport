@@ -110,7 +110,6 @@ def adapt_grid(a, b, dq, dx, n):
     nl_dens = n/(dens_fac*(b-a) - (dens_fac-1)*nl_wid)
     int_dens, bl_dens = dens_fac*nl_dens, dens_fac*nl_dens
     
-    print("Densities of boundary, interior, normal layers", bl_dens, int_dens, nl_dens)
 
     x = zeros(n)
     # left boundary layer
@@ -119,21 +118,18 @@ def adapt_grid(a, b, dq, dx, n):
     # nonlayer
     nl1_end = int_cent - int_wid/2
     n_nl1 = int((nl1_end-lbl_end)*nl_dens) 
-    print("Beginning of left normal layer", lbl_end)
-    print("End of left normal layer", nl1_end)
-    print("Number of elements in left normal layer", n_nl1)
-    x[n_bl:n_nl1+n_bl] = array(linspace(lbl_end, nl1_end, n_nl1))
+    x[n_bl:n_nl1+n_bl] = array(linspace(lbl_end, nl1_end, n_nl1+1))[1:]
     # interior layer
     int_end, n_int = int_cent + int_wid/2, int(int_dens*int_wid)
-    x[n_bl+n_nl1:n_bl+n_nl1+n_int] = array(linspace(nl1_end, int_end, n_int))
+    x[n_bl+n_nl1:n_bl+n_nl1+n_int] = array(linspace(nl1_end, int_end, n_int+1))[1:]
     # nonlayer
     nl2_end = b-bl_wid
     n_nl2 = int(nl_dens*(nl2_end-int_end))
     nl_ind = n_bl+n_nl1+n_int
-    x[nl_ind:nl_ind+n_nl2] = array(linspace(int_end,nl2_end,n_nl2))
+    x[nl_ind:nl_ind+n_nl2] = array(linspace(int_end,nl2_end,n_nl2+1))[1:]
     # right boundary layer
     rbl_ind = nl_ind + n_nl2
-    x[rbl_ind:n] = array(linspace(nl2_end, b, n - rbl_ind))
+    x[rbl_ind:n] = array(linspace(nl2_end, b, n-rbl_ind+1))[1:]
     return x
 
 def fd_coeff_2(x, a, b):
