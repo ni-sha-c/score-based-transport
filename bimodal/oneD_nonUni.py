@@ -162,7 +162,7 @@ def help_solver(x, q, dq, n):
                         fd_coeff_1(x[i],x[i-1],x[i+1])*q[i]
         A[i,i] += dq[i]
     print(A)
-    A = scsp.csr_matrix(A) 
+    A = scsp.csr_matrix(A[1:-1,1:-1]) 
     return A
 
 def solve_newton_step(p, q, A, n):
@@ -171,6 +171,14 @@ def solve_newton_step(p, q, A, n):
     v = zeros(n)
     v[1:-1] = linalg.solve(A, b)
     return v
+
+def get_derivs(v,x,n):
+    dv, d2v = zeros(n),zeros(n)
+    for i in range(1,n-1):
+        dv[i] = dot(fd_coeff_1(x[i],x[i-1],x[i+1]),v[i-1:i+2])
+        d2v[i] = dot(fd_coeff_2(x[i],x[i-1],x[i+1]),v[i-1:i+2])
+    return dv[1:-1],d2v[1:-1]
+
 """
 	Evaluate the transformed score function G(p,Id+v)
 	Inputs:
@@ -199,17 +207,14 @@ def H(p,vp,vpp):
 		Tx: transported samples
 """
 def newton_update(x_gr, v_gr, p_gr, x, n_gr, n):
-    v_int = spin.interp1d(x_gr,v_gr,kind="linear",fill_value="extrapolate")
-    dx_inv = 1/(x_gr[1]-x_gr[0])
-    dx2_inv = dx_inv*dx_inv
-    vp_gr = (v_gr[2:]-v_gr[:-2])*dx_inv*0.5
-    vpp_gr = (-2*v_gr[1:-1]+v_gr[:-2]+v_gr[2:])*dx2_inv
+    vp_gr, vpp_gr = get_derivs(v_gr, x_gr, n_gr)
     Gp_gr = H(p_gr[1:-1],vp_gr,vpp_gr)
     Tx_gr = x_gr + v_gr
     Tx_gr = Tx_gr[1:-1]
     order_gr = argsort(Tx_gr)
     Tx_gr, Gp_gr = Tx_gr[order_gr], Gp_gr[order_gr]
     p1_gr_fn = spin.interp1d(Tx_gr,Gp_gr,kind="linear",fill_value="extrapolate")
+    v_int = spin.interp1d(x_gr,v_gr,kind="linear",fill_value="extrapolate")
     return p1_gr_fn(x_gr), x+v_int(x)
 """
 	Main driver function that performs KAM-Newton iteration to construct transport maps
@@ -241,7 +246,7 @@ def kam_newton(x,a,b,k,n_gr,n,tar_sc,dtar_sc,src_sc):
     normv = zeros(k)
     A = help_solver(x_gr, q_gr, dq_gr, n_gr)
     
-    """
+    
     #Run Newton iterations
     for i in range(k):
         v_gr = solve_newton_step(p_gr, q_gr, A, n_gr)
@@ -249,4 +254,4 @@ def kam_newton(x,a,b,k,n_gr,n,tar_sc,dtar_sc,src_sc):
         p_gr, Tx = newton_update(x_gr, v_gr, p_gr, Tx, n_gr, n)
         print(max(q_gr), min(q_gr), max(p_gr), min(p_gr), max(Tx), min(Tx))
     return Tx, x_gr, v_gr, p_gr, q_gr, normv
-    """
+    
