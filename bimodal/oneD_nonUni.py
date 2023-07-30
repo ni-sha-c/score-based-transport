@@ -104,7 +104,7 @@ This function gives grid locations based on following assumptions:
     4. Density of points in layer (interior/boundary) is 10x that in nonlayer
 """
 def adapt_grid(a, b, dq, dx, n):
-    dens_fac = 5
+    dens_fac = 1
     int_wid, bl_wid, int_cent = 3.0, 2.0, argmax(dq)*dx + a
     nl_wid = b - a - 2*bl_wid - int_wid
     nl_dens = n/(dens_fac*(b-a) - (dens_fac-1)*nl_wid)
@@ -161,7 +161,6 @@ def help_solver(x, q, dq, n):
         A[i,i-1:i+2] = fd_coeff_2(x[i],x[i-1],x[i+1]) + \
                         fd_coeff_1(x[i],x[i-1],x[i+1])*q[i]
         A[i,i] += dq[i]
-    print(A)
     A = scsp.csr_matrix(A[1:-1,1:-1]) 
     return A
 
@@ -169,7 +168,16 @@ def solve_newton_step(p, q, A, n):
     qs, ps = q[1:-1], p[1:-1]
     b = ps - qs
     v = zeros(n)
-    v[1:-1] = linalg.solve(A, b)
+    v[1:-1] = scsp.linalg.spsolve(A, b)
+    return v
+def solve_newton_step_regularized(p, q, A, h, n):
+    qs, ps = q[1:-1], p[1:-1]
+    b = ps - qs
+    v = zeros(n)
+    AT = A.T
+    Ahat = dot(AT,A)+h*h*scsp.eye(n-2)
+    bhat = dot(AT.todense(),b).T
+    v[1:-1] = scsp.linalg.spsolve(Ahat, bhat)
     return v
 
 def get_derivs(v,x,n):
@@ -238,20 +246,19 @@ def kam_newton(x,a,b,k,n_gr,n,tar_sc,dtar_sc,src_sc):
     dq_gr = dtar_sc(x_gr)
     dx = x_gr[1] - x_gr[0]
     x_gr = adapt_grid(a,b,dq_gr,dx,n_gr) 
-    print(x_gr) 
     # Set up first iteration
     p_gr = src_sc(x_gr)
     q_gr = tar_sc(x_gr)
     dq_gr = dtar_sc(x_gr)
     normv = zeros(k)
-    A = help_solver(x_gr, q_gr, dq_gr, n_gr)
-    
+    A = help_solver(x_gr, q_gr, dq_gr, n_gr) 
     
     #Run Newton iterations
     for i in range(k):
-        v_gr = solve_newton_step(p_gr, q_gr, A, n_gr)
+        v_gr = solve_newton_step_regularized(p_gr, q_gr, A, 0.1, n_gr)
         normv[i] = linalg.norm(v_gr)
         p_gr, Tx = newton_update(x_gr, v_gr, p_gr, Tx, n_gr, n)
-        print(max(q_gr), min(q_gr), max(p_gr), min(p_gr), max(Tx), min(Tx))
+        #print(max(q_gr), min(q_gr), max(p_gr), min(p_gr), max(Tx), min(Tx))
+        print("||v_%d|| is %f" % (i,linalg.norm(v_gr)))
     return Tx, x_gr, v_gr, p_gr, q_gr, normv
     
