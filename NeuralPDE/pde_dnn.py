@@ -27,18 +27,26 @@ def pde(model, x):
 
 def pde_rhs(x):
     with torch.no_grad ():
-        rhs = pi * torch.sin(pi * (x[0] + x[1]))
+        rhs = torch.pi * torch.sin(torch.pi * (x[0] + x[1]))
     return rhs
 
-def train_pde():
-    model = v_dnn(dim=2)
+def train_pde(model, pde, pde_rhs, m=100, n=100):
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    for epoch in progressbar.tqdm (range(1000), desc="Training", unit="epoch"):
-        optimizer.zero_grad()
-        loss = pde_residual(torch.randn(2))
-        loss.backward()
-        optimizer.step()
-        print(epoch, loss.item())
+    print("Training the model...")
+    with progressbar.tqdm (range(n), unit="epoch") as pbar:
+        for epoch in range(n):
+            optimizer.zero_grad()
+            loss = 0.0
+            for i in range(m):
+                x = torch.randn(2)
+                pdex = pde(model, x)
+                pdex_rhs = pde_rhs(x)
+                loss += (pdex - pdex_rhs)**2
+            loss.backward()
+            optimizer.step()
+            pbar.write(f"Epoch {epoch}: loss={loss.item():.4e}")
+            pbar.update()
+    return model
 # Create an instance of the model
 #model = v_dnn(dim=2)
 
@@ -49,7 +57,7 @@ def train_pde():
 #model.eval()
 x = torch.randn(2)
 model = v_dnn(dim=2)
-pdex = pde(model, x)
+model = train_pde(model, pde, pde_rhs, m=100)
 
-print("True derivative: ", torch.cat((2*x.unsqueeze(0), torch.zeros(2).unsqueeze(0)), dim=0))
+#print("True derivative: ", torch.cat((2*x.unsqueeze(0), torch.zeros(2).unsqueeze(0)), dim=0))
 
