@@ -21,9 +21,8 @@ class v_dnn(nn.Module):
 def pde(model, x):
     x.requires_grad_(True)
     y = model(x)
-    print("NN evaluated at %f is %f" % (x[0], y[0]))
-    dvx_dx = torch.autograd.grad(y[0], x)
-    dvy_dx = torch.autograd.grad(y[1], x)
+    dvx_dx = torch.autograd.grad(y[0], x, retain_graph=True)
+    dvy_dx = torch.autograd.grad(y[1], x, retain_graph=True)
     #d2vx_dx2 = torch.autograd.grad(dvx_dx, x, create_graph=True)
     out = sum(dvx_dx[0])
     return out
@@ -56,18 +55,19 @@ def train_pde(model, pde, xmin=torch.tensor([0.0,0.0]), xmax=torch.tensor([1.0,1
     with progressbar.tqdm (range(n), unit="epoch") as pbar:
         for epoch in range(n):
             optimizer.zero_grad()
-            loss = 0.0
             for t, (x, y) in enumerate(dataloader):
                 x_g = x.to(args.device)
                 y_g = y.to(args.device)
-                output = torch.zeros(args.batchsize, 2)
+                output = torch.zeros(args.batchsize, 2, requires_grad=True)
                 output = output.to(args.device)
                 for i, x_i in enumerate(x_g):
                     output[i] = pde(model, x_i)
-                loss += torch.nn.functional.mse_loss(output, y_g)
+                loss = torch.nn.functional.mse_loss(output, y_g)
+                optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-            pbar.write(f"Epoch {epoch}: loss={loss.item():.4e}")
+            if epoch % 10 == 0:
+                pbar.write(f"Epoch {epoch}: loss={loss.item():.3e}")
             pbar.update()
     return model
 if __name__ == "__main__":
