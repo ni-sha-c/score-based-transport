@@ -21,8 +21,9 @@ class v_dnn(nn.Module):
 def pde(model, x):
     x.requires_grad_(True)
     y = model(x)
-    dvx_dx = torch.autograd.grad(y[0], x, create_graph=True)
-    dvy_dx = torch.autograd.grad(y[1], x, create_graph=True)
+    print("NN evaluated at %f is %f" % (x[0], y[0]))
+    dvx_dx = torch.autograd.grad(y[0], x)
+    dvy_dx = torch.autograd.grad(y[1], x)
     #d2vx_dx2 = torch.autograd.grad(dvx_dx, x, create_graph=True)
     out = sum(dvx_dx[0])
     return out
@@ -47,7 +48,7 @@ def create_dataset(m=100,xmin=torch.tensor([0.0, 0.0]), xmax=torch.tensor([1.0, 
     dataset = PDEDataset(m,xmin,xmax)
     return dataset
 
-def train_pde(model, pde, pde_rhs, xmin=torch.tensor([0.0,0.0]), xmax=torch.tensor([0.0,0.0]), m=100, n=100):
+def train_pde(model, pde, xmin=torch.tensor([0.0,0.0]), xmax=torch.tensor([1.0,1.0]), m=100, n=100):
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     dataset = create_dataset(m, xmin, xmax)
     dataloader = DataLoader(dataset, batch_size=args.batchsize, shuffle=True)
@@ -86,7 +87,7 @@ if __name__ == "__main__":
     xmax = torch.tensor([1.0, 1.0])
     m = 100
     n = args.epoch
-    model = train_pde(model, pde, pde_rhs, m, n)
+    model = train_pde(model, pde, xmin, xmax, m, n)
 
 
 # Create an instance of the model
