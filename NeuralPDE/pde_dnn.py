@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import tqdm as progressbar
 class v_dnn(nn.Module):
     def __init__(self, dim=2):
         super(v_dnn, self).__init__()
@@ -33,7 +33,7 @@ def pde_rhs(x):
 def train_pde():
     model = v_dnn(dim=2)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    for epoch in range(1000):
+    for epoch in progressbar.tqdm (range(1000), desc="Training", unit="epoch"):
         optimizer.zero_grad()
         loss = pde_residual(torch.randn(2))
         loss.backward()

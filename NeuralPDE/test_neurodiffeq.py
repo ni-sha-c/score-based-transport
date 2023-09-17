@@ -5,12 +5,14 @@ from neurodiffeq.networks import FCNN
 import torch
 import numpy as np
 from matplotlib.pyplot import *
-def target_score(x):
-    return [x**2, x**3]
-def d_target_score(x):
-    return array([2*x, 0, 0, 3*x**2]).reshape(2, 2)
+def target_score(x, y):
+    return np.array([x**2, x**3])
+def d_target_score(x, y):
+    return np.array([2*x, 0, 0, 3*x**2]).reshape(2, 2)
 def pde_x(u, x, y):
-    return [diff(u, x, order=2) + diff(u, y, order=1)]
+    q = target_score(x, y)
+    dq = d_target_score(x, y)
+    return [diff(u, x, order=2) + u*dq[0,0] + q[0]*diff(u, y, order=x)]
 def pde_y(u, x, y):
     return [diff(u, x, order=1) + diff(u, y, order=2)]
 conditions = [
