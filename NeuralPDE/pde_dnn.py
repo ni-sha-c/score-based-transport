@@ -8,54 +8,62 @@ from matplotlib.pyplot import *
 class v_dnn(nn.Module):
     def __init__(self, dim=2):
         super(v_dnn, self).__init__()
-        self.relu = nn.ReLU()
-        self.fc1 = nn.Linear(dim, 512)  
-        self.e11 = nn.Conv2d(1, 64, kernel_size=3, padding=1) # output: 1x2x64
-        self.e12 = nn.Conv2d(64, 64, kernel_size=3, padding=1) # output: 1x2x64
-        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2) # output: 284x284x64
+        self.relu = nn.Sigmoid()
+        self.fc1 = nn.Linear(dim, 64)  
+        n = 4
+        # Encoder
+        self.e11 = nn.Conv2d(1, n, kernel_size=3, padding=1) 
+        self.e12 = nn.Conv2d(n, n, kernel_size=3, padding=1) 
+        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2) # output: 8x8x4
 
-        # input: 284x284x64
-        self.e21 = nn.Conv2d(64, 128, kernel_size=3, padding=1) # output: 282x282x128
-        self.e22 = nn.Conv2d(128, 128, kernel_size=3, padding=1) # output: 280x280x128
-        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2) # output: 140x140x128
+        self.e21 = nn.Conv2d(n, 2*n, kernel_size=3, padding=1) 
+        self.e22 = nn.Conv2d(2*n, 2*n, kernel_size=3, padding=1)
+        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2) # output: 16x4x1
+        self.e31 = nn.Conv2d(2*n, 4*n, kernel_size=3, padding=1)
+        self.e32 = nn.Conv2d(4*n, 4*n, kernel_size=3, padding=1)
+        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2) # output: 32x2x1
+        self.e41 = nn.Conv2d(4*n, 8*n, kernel_size=3, padding=1)
+        self.e42 = nn.Conv2d(8*n, 8*n, kernel_size=3, padding=1)
         
         # Decoder
-        self.upconv1 = nn.ConvTranspose2d(1024, 512, kernel_size=2, stride=2)
-        self.d11 = nn.Conv2d(1024, 512, kernel_size=3, padding=1)
-        self.d12 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        self.upconv1 = nn.ConvTranspose2d(8*n, 4*n, kernel_size=2, stride=2)
+        self.d11 = nn.Conv2d(8*n, 4*n, kernel_size=3, padding=1)
+        self.d12 = nn.Conv2d(4*n, 4*n, kernel_size=3, padding=1)
 
-        self.upconv2 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
-        self.d21 = nn.Conv2d(512, 256, kernel_size=3, padding=1)
-        self.d22 = nn.Conv2d(256, 256, kernel_size=3, padding=1)
+        self.upconv2 = nn.ConvTranspose2d(4*n, 2*n, kernel_size=2, stride=2)
+        self.d21 = nn.Conv2d(4*n, 2*n, kernel_size=3, padding=1)
+        self.d22 = nn.Conv2d(2*n, 2*n, kernel_size=3, padding=1)
 
+        self.upconv3 = nn.ConvTranspose2d(2*n, n, kernel_size=2, stride=2)
+        self.d31 = nn.Conv2d(2*n, n, kernel_size=3, padding=1)
+        self.d32 = nn.Conv2d(n, n, kernel_size=3, padding=1)
 
-        self.fc2 = nn.Linear(32, dim)
+        # out conv
+        self.outconv = nn.Conv2d(n, 1, kernel_size=3, padding=1)
+        self.fc2 = nn.Linear(64, dim)
 
     def forward(self, x):
         x = self.fc1(x)
-        x = x.view(-1, 1, 16, 32)
+        x = x.view(1, 8, 8)
         # encoder
-        x = self.e11(x)
-        x = self.relu(x)
-        x = self.e12(x)
-        x = self.relu(x)
-        x = self.pool1(x)
-        x = self.e21(x)
-        x = self.relu(x)
-        x = self.e22(x)
-        x = self.relu(x)
-        x = self.pool2(x)
+        xe1 = self.relu(self.e12(self.relu(self.e11(x))))
+        x = self.pool1(xe1)
+        xe2 = self.relu(self.e22(self.relu(self.e21(x))))
+        x = self.pool2(xe2)
+        xe3 = self.relu(self.e32(self.relu(self.e31(x))))
+        x = self.pool3(xe3)
+        x = self.relu(self.e42(self.relu(self.e41(x))))
         # decoder
         x = self.upconv1(x)
-        x = self.d11(x)
-        x = self.relu(x)
-        x = self.d12(x)
-        x = self.relu(x)
+        xu1 = torch.cat([x, xe3], dim=0)
+        x = self.relu(self.d12(self.relu(self.d11(xu1))))
         x = self.upconv2(x)
-        x = self.d21(x)
-        x = self.relu(x)
-        x = self.d22(x)
-        x = self.relu(x)
+        xu2 = torch.cat([x, xe2], dim=0)
+        x = self.relu(self.d22(self.relu(self.d21(xu2))))
+        x = self.upconv3(x)
+        xu3 = torch.cat([x, xe1], dim=0)
+        x = self.relu(self.d32(self.relu(self.d31(xu3))))
+        x = self.outconv(x)
         x = x.flatten()
         x = self.fc2(x)
         return x
@@ -147,7 +155,7 @@ def visualize(model, xmin=torch.tensor([0.0,0.0]), xmax=torch.tensor([1.0,1.0]),
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lr", type=float, default=0.01)
+    parser.add_argument("--lr", type=float, default=0.001)
     parser.add_argument("--batchsize", type=int, default=10)
     parser.add_argument("--epoch", type=int, default=1000)
     parser.add_argument("--device", default="cuda", choices=["cpu", "cuda"])
