@@ -8,23 +8,54 @@ from matplotlib.pyplot import *
 class v_dnn(nn.Module):
     def __init__(self, dim=2):
         super(v_dnn, self).__init__()
-        self.fc1 = nn.Linear(dim, 512)  
-        #self.sigmoid1 = nn.Sigmoid()
-        self.conv1 = nn.Conv2d(1, 16, (3,5), stride=(2,1), padding=(4,2))
-
-        self.conv2 = nn.Conv2d(16, 4, (3,5), stride=(2,1), padding=(4,2))
-        self.conv3 = nn.Conv2d(4, 4, (3,5), stride=(2,1), padding=(4,2))
         self.relu = nn.ReLU()
-        self.pool = nn.MaxPool2d(2, stride=2)
+        self.fc1 = nn.Linear(dim, 512)  
+        self.e11 = nn.Conv2d(1, 64, kernel_size=3, padding=1) # output: 1x2x64
+        self.e12 = nn.Conv2d(64, 64, kernel_size=3, padding=1) # output: 1x2x64
+        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2) # output: 284x284x64
+
+        # input: 284x284x64
+        self.e21 = nn.Conv2d(64, 128, kernel_size=3, padding=1) # output: 282x282x128
+        self.e22 = nn.Conv2d(128, 128, kernel_size=3, padding=1) # output: 280x280x128
+        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2) # output: 140x140x128
+        
+        # Decoder
+        self.upconv1 = nn.ConvTranspose2d(1024, 512, kernel_size=2, stride=2)
+        self.d11 = nn.Conv2d(1024, 512, kernel_size=3, padding=1)
+        self.d12 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
+
+        self.upconv2 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
+        self.d21 = nn.Conv2d(512, 256, kernel_size=3, padding=1)
+        self.d22 = nn.Conv2d(256, 256, kernel_size=3, padding=1)
+
 
         self.fc2 = nn.Linear(32, dim)
 
     def forward(self, x):
         x = self.fc1(x)
         x = x.view(-1, 1, 16, 32)
-        x = self.pool(self.relu(self.conv1(x)))
-        x = self.pool(self.relu(self.conv2(x)))
-        x = self.pool(self.relu(self.conv3(x)))
+        # encoder
+        x = self.e11(x)
+        x = self.relu(x)
+        x = self.e12(x)
+        x = self.relu(x)
+        x = self.pool1(x)
+        x = self.e21(x)
+        x = self.relu(x)
+        x = self.e22(x)
+        x = self.relu(x)
+        x = self.pool2(x)
+        # decoder
+        x = self.upconv1(x)
+        x = self.d11(x)
+        x = self.relu(x)
+        x = self.d12(x)
+        x = self.relu(x)
+        x = self.upconv2(x)
+        x = self.d21(x)
+        x = self.relu(x)
+        x = self.d22(x)
+        x = self.relu(x)
         x = x.flatten()
         x = self.fc2(x)
         return x
