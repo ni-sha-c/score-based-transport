@@ -4,7 +4,7 @@ rc('text', usetex=True)
 import scipy.stats as sst
 import sys
 import os
-sys.path.append(os.path.abspath("/home/nisha/code/score-based-transport/bimodal"))
+sys.path.append(os.path.abspath("/home/nisha/Research/faculty/code/score-based-transport/bimodal"))
 from oneD_nonUni import *
 
 def KRMap1(x):
@@ -93,7 +93,7 @@ def test_kam_newton_unbounded(k,n_gr,n,msrc,ssrc,m1,m2,s1,s2,w1,w2):
     tar_sc = lambda x: bimodal_score(x,m1,m2,s1,s2,w1,w2)
     dtar_sc = lambda x: bimodal_score_derivative(x,m1,m2,s1,s2,w1,w2)
     src_sc = lambda x: gaussian_score(x,msrc,ssrc)
-    Tx, x_gr, v_gr, p_gr, q_gr, normv = kam_newton(x,m1-8*s1,m2+8*s2,k,n_gr,n,tar_sc,dtar_sc,src_sc)
+    Tx, x_gr, v_gr, p_gr, q_gr, normv = kam_newton(x,m1-10*s1,m2+10*s2,k,n_gr,n,tar_sc,dtar_sc,src_sc)
     
     Tx_gr = linspace(min(Tx), max(Tx), n_gr)
     px_tar = bimodal_prob(Tx_gr,m1,m2,s1,s2,w1,w2) 
@@ -113,7 +113,7 @@ def test_kam_newton_unbounded(k,n_gr,n,msrc,ssrc,m1,m2,s1,s2,w1,w2):
     ax.set_xlabel("x", fontsize=30)
     ax.xaxis.set_tick_params(labelsize=30)
     ax.yaxis.set_tick_params(labelsize=30)
-    ax.hist(Tx,bins=500,lw=3.0,histtype="step",density=True,label=R"$\rho$")
+    ax.hist(Tx,bins=100,lw=3.0,histtype="step",density=True,label=R"$\rho$")
     ax.plot(Tx_gr,px_tar,lw=3.0,label=R"target")
     ax.set_title("After {} iteration(s)".format(k),fontsize=30)
     ax.grid(True)
