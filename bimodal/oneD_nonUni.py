@@ -104,7 +104,7 @@ This function gives grid locations based on following assumptions:
     4. Density of points in layer (interior/boundary) is 10x that in nonlayer
 """
 def adapt_grid(a, b, dq, dx, n):
-    dens_fac = 10
+    dens_fac = 4
     int_wid, bl_wid, int_cent = 3.0, 2.0, argmax(dq)*dx + a
     nl_wid = b - a - 2*bl_wid - int_wid
     nl_dens = n/(dens_fac*(b-a) - (dens_fac-1)*nl_wid)
@@ -255,7 +255,7 @@ def kam_newton(x,a,b,k,n_gr,n,tar_sc,dtar_sc,src_sc):
     
     #Run Newton iterations
     for i in range(k):
-        v_gr = solve_newton_step_regularized(p_gr, q_gr, A, 0.06, n_gr)
+        v_gr = solve_newton_step_regularized(p_gr, q_gr, A, 0.08, n_gr)
         normv[i] = linalg.norm(v_gr)
         p_gr, Tx = newton_update(x_gr, v_gr, p_gr, Tx, n_gr, n)
         #print(max(q_gr), min(q_gr), max(p_gr), min(p_gr), max(Tx), min(Tx))

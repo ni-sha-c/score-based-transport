@@ -6,7 +6,8 @@ import sys
 import os
 sys.path.append(os.path.abspath("/home/nisha/code/score-based-transport/bimodal"))
 from oneD_nonUni import *
-
+import seaborn as sns
+sns.set_style("whitegrid")
 def KRMap1(x):
     return ((x+1)**3 - 1)/7
 def KRMap2(x):
@@ -94,7 +95,8 @@ def test_kam_newton_unbounded(k,n_gr,n,msrc,ssrc,m1,m2,s1,s2,w1,w2):
     dtar_sc = lambda x: bimodal_score_derivative(x,m1,m2,s1,s2,w1,w2)
     src_sc = lambda x: gaussian_score(x,msrc,ssrc)
     Tx, x_gr, v_gr, p_gr, q_gr, normv = kam_newton(x,m1-10*s1,m2+10*s2,k,n_gr,n,tar_sc,dtar_sc,src_sc)
-    
+    Tx1, x_gr1, v_gr1, p_gr1, q_gr1, normv1 = kam_newton(x,m1-10*s1,m2+10*s2,15,n_gr,n,tar_sc,dtar_sc,src_sc)
+   
     Tx_gr = linspace(min(Tx), max(Tx), n_gr)
     px_tar = bimodal_prob(Tx_gr,m1,m2,s1,s2,w1,w2) 
     fig, ax = subplots()
@@ -110,12 +112,15 @@ def test_kam_newton_unbounded(k,n_gr,n,msrc,ssrc,m1,m2,s1,s2,w1,w2):
     savefig("../plots/v-k{}-ub.png".format(k))
     
     fig, ax = subplots()
-    ax.set_xlabel("x", fontsize=30)
+    #ax.set_xlabel("x", fontsize=30)
     ax.xaxis.set_tick_params(labelsize=30)
     ax.yaxis.set_tick_params(labelsize=30)
-    ax.hist(Tx,bins=100,lw=3.0,histtype="step",density=True,label=R"$\rho$")
-    ax.plot(Tx_gr,px_tar,lw=3.0,label=R"target")
-    ax.set_title("After {} iteration(s)".format(k),fontsize=30)
+    colors = sns.color_palette("Set2", 8)
+    sns.histplot(Tx,bins=100,ax=ax,color=colors[0],kde=True,fill=False,element="step",stat='density',kde_kws={'bw_adjust': 0.5},line_kws={'linewidth':3},label=R"SCONE, iter = 5")
+    sns.histplot(Tx1,bins=100,ax=ax,color=colors[1],kde=True,fill=False,element="step",stat='density',kde_kws={'bw_adjust':0.5},line_kws={'linewidth':3},label=R"SCONE, iter = 15")
+    ax.set_ylabel(" ")
+    ax.plot(Tx_gr,px_tar,lw=3.0,color="r",label=R"target")
+    #ax.set_title("After {} iteration(s)".format(k),fontsize=30)
     ax.grid(True)
     ax.legend(fontsize=24,framealpha=0,loc='upper left')
     tight_layout()
