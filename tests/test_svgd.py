@@ -1,7 +1,10 @@
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 import matplotlib.pyplot as plt
-
+from matplotlib import rc
+rc('text',usetex=True)
+import seaborn as sns
+sns.set_style("whitegrid")
 class SVGD:
     def __init__(self):
         pass
@@ -28,7 +31,7 @@ class SVGD:
 
         return Kxy, dxkxy
 
-    def update(self, x0, lnprob, n_iter=1000, stepsize=1e-3, bandwidth=-1, alpha=0.9, debug=False):
+    def update(self, x0, lnprob, n_iter=1000, stepsize=1e-3, bandwidth=-1, alpha=1.0, debug=True):
         # Check input
         if x0 is None or lnprob is None:
             raise ValueError('x0 or lnprob cannot be None!')
@@ -41,10 +44,12 @@ class SVGD:
         for iteration in range(n_iter):
             if debug and (iteration + 1) % 1000 == 0:
                 print('iter ' + str(iteration + 1))
+                print(theta.shape)
             lnpgrad = lnprob(theta)
             # calculating the kernel matrix
             kxy, dxkxy = self.svgd_kernel(theta, h=-1)
             grad_theta = (np.matmul(kxy, lnpgrad) + dxkxy) / x0.shape[0]
+
 
             # adagrad
             if iteration == 0:
@@ -79,24 +84,42 @@ def gradient_log_bimodal_p(x):
     return grad
 
 # Initial samples
-x0 = np.random.normal(-10, 1, [1000, 1])
+x0 = np.random.normal(0, 1, [512, 1])
 
 # Use SVGD to update the samples
-theta = SVGD().update(x0, gradient_log_bimodal_p, n_iter=2500, stepsize=0.01)
-
+theta1 = SVGD().update(x0, gradient_log_bimodal_p, n_iter=15, stepsize=0.01)
+theta2 = SVGD().update(x0, gradient_log_bimodal_p, n_iter=500, stepsize=0.01)
+theta3 = SVGD().update(x0, gradient_log_bimodal_p, n_iter=1000, stepsize=0.01)
 # Sanity Checking
 print("mu1: ", mu1)
 print("mu2: ", mu2)
-print("bimodal mean", np.mean(theta))
-
+print("bimodal mean", np.mean(theta1))
+print("bimodal mean", np.mean(theta2))
+print("bimodal mean", np.mean(theta3))
+theta1 = theta1.reshape(-1)
+theta2 = theta2.reshape(-1)
+theta3 = theta3.reshape(-1)
 # Plotting
-x_range = np.linspace(-10, 10, 100)
+
+x_range = np.linspace(-7, 7, 500)
 true_pdf = bimodal_p(x_range)
-plt.hist(theta, bins=30, density=True, alpha=0.5, label='Samples (theta)')
-plt.plot(x_range, true_pdf, label='True Distribution', color='red')
+fig, ax = plt.subplots()
+ax.set_xlabel("x", fontsize=30)
+ax.xaxis.set_tick_params(labelsize=30)
+ax.yaxis.set_tick_params(labelsize=30)
+ax.grid(True)
+
+colors = sns.color_palette("Set2", 10)
+sns.histplot(theta1, ax=ax, color=colors[0], kde=True, fill=False, stat='density', bins=35, element="step", kde_kws={'bw_adjust': 0.5}, line_kws = {'linewidth': 3}, label='SVGD, iter=15')
+
+sns.histplot(theta2, ax=ax, color=colors[1], kde=True, fill=False, stat='density', bins=35, element="step", kde_kws={'bw_adjust':0.5}, line_kws = {'linewidth': 3}, label='SVGD, iter=500')
+
+sns.histplot(theta3, ax=ax, color=colors[2], kde=True, fill=False, stat='density', bins=35, element="step", kde_kws={'bw_adjust':0.5}, line_kws = {'linewidth': 3}, label='SVGD, iter=1000')
+
+ax.plot(x_range, true_pdf, label='target', color='red', lw=3)
+ax.set_ylabel(" ")
 # Add labels and  legend
-plt.xlabel('x')
-plt.ylabel('Probability Density')
-plt.legend()
+ax.legend(fontsize=24)
+plt.tight_layout()
 plt.show()
 

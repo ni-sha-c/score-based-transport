@@ -4,7 +4,7 @@ rc('text', usetex=True)
 import scipy.stats as sst
 import sys
 import os
-sys.path.append(os.path.abspath("/home/nisha/Research/faculty/code/score-based-transport/bimodal"))
+sys.path.append(os.path.abspath("/home/nisha/code/score-based-transport/bimodal"))
 from oneD_nonUni import *
 
 def KRMap1(x):
