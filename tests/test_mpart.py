@@ -218,7 +218,7 @@ if __name__ == '__main__':
         seed = 1928342
         # Ensure that the number of parameters * number of MC points for training <= 128*128
         num_test_pts = (512*512) // (total_order+1)
-        optimization_args = {'maxiter': 10} # Optimization algorithm gets 100 steps
+        optimization_args = {'maxiter': 5} # Optimization algorithm gets 100 steps
         tmap1 = train_map(num_test_pts, total_order, optimization_args)
         optimization_args = {'maxiter': 500} 
         tmap2 = train_map(num_test_pts, total_order, optimization_args)
@@ -227,7 +227,7 @@ if __name__ == '__main__':
             pickle.dump(tmap2.CoeffMap(), f)
 
     # Example use of `tmap` for generative modeling
-    test_pts = np.random.randn(1, 20000)
+    test_pts = np.random.randn(1, 50000)
     eval_samples1 = tmap1.Evaluate(test_pts).flatten()
     eval_samples2 = tmap2.Evaluate(test_pts).flatten()
     # Messy way to get the PDF, reinitializing the gmm object (change if you change the target)
@@ -238,7 +238,7 @@ if __name__ == '__main__':
     ax.set_xlabel("x", fontsize=30)
     ax.xaxis.set_tick_params(labelsize=30)
     ax.yaxis.set_tick_params(labelsize=30)
-    ax.hist(eval_samples1, bins=128, lw=3.0, histtype="step", density=True, label="param trans, iter = 10")
+    ax.hist(eval_samples1, bins=128, lw=3.0, histtype="step", density=True, label="param trans, iter = 5")
     ax.hist(eval_samples2, bins=128, lw=3.0, histtype="step", density=True, label="param trans, iter = 500")
     ax.plot(eval_samples2, np.exp(gmm.logpdf(eval_samples2)), lw=3.0, color='r', label=R"target")
     ax.legend(fontsize=24,framealpha=0)

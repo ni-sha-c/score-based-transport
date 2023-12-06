@@ -88,7 +88,7 @@ def gradient_log_bimodal_p(x):
 x0 = np.random.normal(0, 1, [512, 1])
 
 # Use SVGD to update the samples
-theta1 = SVGD().update(x0, gradient_log_bimodal_p, n_iter=15, stepsize=0.01)
+theta1 = SVGD().update(x0, gradient_log_bimodal_p, n_iter=5, stepsize=0.01)
 theta2 = SVGD().update(x0, gradient_log_bimodal_p, n_iter=500, stepsize=0.01)
 theta3 = SVGD().update(x0, gradient_log_bimodal_p, n_iter=1000, stepsize=0.01)
 # Sanity Checking
@@ -111,7 +111,7 @@ ax.yaxis.set_tick_params(labelsize=30)
 ax.grid(True)
 
 colors = sns.color_palette("Set2", 10)
-sns.histplot(theta1, ax=ax, color=colors[0], kde=True, fill=False, stat='density', bins=35, element="step", kde_kws={'bw_adjust': 0.5}, line_kws = {'linewidth': 3}, label='SVGD, iter=15')
+sns.histplot(theta1, ax=ax, color=colors[0], kde=True, fill=False, stat='density', bins=35, element="step", kde_kws={'bw_adjust': 0.5}, line_kws = {'linewidth': 3}, label='SVGD, iter=5')
 
 sns.histplot(theta2, ax=ax, color=colors[1], kde=True, fill=False, stat='density', bins=35, element="step", kde_kws={'bw_adjust':0.5}, line_kws = {'linewidth': 3}, label='SVGD, iter=500')
 
